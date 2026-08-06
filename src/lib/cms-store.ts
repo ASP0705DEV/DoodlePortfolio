@@ -346,12 +346,73 @@ export type ExperienceItemCMS = {
   description: string;
 };
 
-export type ResumeCMS = ResumeContent & {
+export type EducationItemCMS = {
+  id: string;
+  school: string;
+  degree: string;
+  period: string;
+  detail: string;
+};
+
+export type CertificationItemCMS = {
+  id: string;
+  name: string;
+  issuer: string;
+  year: string;
+  url?: string;
+};
+
+export type AchievementItemCMS = {
+  id: string;
+  title: string;
+  copy: string;
+  published?: boolean;
+};
+
+export type CapabilityItemCMS = {
+  id: string;
+  title: string;
+  level: number; // 0–100
+  category: string;
+};
+
+export type ProfileOverviewCMS = {
+  summary: string;
+  location: string;
+  availability: string;
+  open_to: string;
+  resume_url: string;
+};
+
+export type ResumeCMS = {
+  profile: ProfileOverviewCMS;
+  capabilities: CapabilityItemCMS[];
   experience: ExperienceItemCMS[];
+  education: EducationItemCMS[];
+  certifications: CertificationItemCMS[];
+  achievements: AchievementItemCMS[];
+  // Legacy ResumeContent fields kept for backward compat
+  summary?: string;
+  services?: { title: string; copy: string }[];
+  facts?: { label: string; value: string }[];
 };
 
 export const defaultResumeCMS: ResumeCMS = {
-  ...defaultResume,
+  profile: {
+    summary: "Full Stack Developer at Gagellan Global Solutions, based in India. I build production web platforms end to end — React and TypeScript on the front, Node and Python services behind them — and I'm going deep on agentic AI: systems that reason, retrieve, plan and act instead of just answering.",
+    location: "India",
+    availability: "Available for freelance & collaborations",
+    open_to: "Collaborations, freelance projects, and consulting",
+    resume_url: "",
+  },
+  capabilities: [
+    { id: "cap_1", title: "React & TypeScript", level: 95, category: "Frontend" },
+    { id: "cap_2", title: "Node.js & Express", level: 90, category: "Backend" },
+    { id: "cap_3", title: "Python & PyTorch", level: 88, category: "AI & ML" },
+    { id: "cap_4", title: "Agentic AI & RAG", level: 92, category: "AI & ML" },
+    { id: "cap_5", title: "OpenCV & Vision", level: 85, category: "AI & ML" },
+    { id: "cap_6", title: "Docker & Cloud", level: 87, category: "DevOps" },
+  ],
   experience: [
     {
       id: "exp_1",
@@ -370,7 +431,26 @@ export const defaultResumeCMS: ResumeCMS = {
       description: "Building custom client software solutions, Agentic AI tools, and Generative AI systems.",
     },
   ],
+  education: [
+    {
+      id: "edu_1",
+      school: "Bachelor of Technology — Computer Science",
+      degree: "B.Tech, CSE",
+      period: "India",
+      detail: "Foundations in data structures, algorithms, databases and distributed systems.",
+    },
+  ],
+  certifications: [
+    { id: "cert_1", name: "Full Stack Web Development", issuer: "Self-directed + industry projects", year: "—" },
+    { id: "cert_2", name: "Applied Generative AI & Agents", issuer: "Ongoing specialisation", year: "2025" },
+  ],
+  achievements: [
+    { id: "ach_1", title: "Shipped production platforms", copy: "Delivered client-facing web applications used in day-to-day business operations.", published: true },
+    { id: "ach_2", title: "Automation that pays for itself", copy: "Built workflows that removed hours of repetitive manual work each week.", published: true },
+    { id: "ach_3", title: "Agentic AI exploration", copy: "Prototyping autonomous agents that plan, call tools and self-correct.", published: true },
+  ],
 };
+
 
 // -------------------------------------------------------------
 // Lead CRM Entry & Subscriber Entry
@@ -382,7 +462,7 @@ export type LeadEntry = {
   subject: string;
   message: string;
   source: "contact_form" | "chatbot" | "consultation" | "project_inquiry";
-  status: "new" | "contacted" | "in_progress" | "archived";
+  status: "new" | "contacted" | "in_progress" | "qualified" | "follow_up" | "completed" | "closed" | "archived";
   created_at: string;
   meta?: Record<string, unknown>;
 };

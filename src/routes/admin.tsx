@@ -116,6 +116,10 @@ import {
   type TechItemCMS,
   type ResumeCMS,
   type ExperienceItemCMS,
+  type EducationItemCMS,
+  type CertificationItemCMS,
+  type AchievementItemCMS,
+  type CapabilityItemCMS,
   type HostedBuildCMS,
   type SubscriberEntry,
 } from "@/lib/cms-store";
@@ -223,7 +227,18 @@ function AdminPage() {
   const [timelinePage, setTimelinePage] = useState(1);
   const [timelinePageSize, setTimelinePageSize] = useState(10);
   const [leadsPage, setLeadsPage] = useState(1);
-  const [leadsPageSize, setLeadsPageSize] = useState(10);
+  const [leadsPageSize, setLeadsPageSize] = useState(25);
+  const [leadsStatusFilter, setLeadsStatusFilter] = useState<"all" | "new" | "contacted" | "in_progress" | "qualified" | "follow_up" | "completed" | "closed" | "archived">("all");
+  const [leadsSearch, setLeadsSearch] = useState("");
+
+  // Resume sub-tab navigation
+  const [resumeSubTab, setResumeSubTab] = useState<"profile" | "capabilities" | "experience" | "education" | "certifications" | "achievements">("experience");
+  // Resume editing states for sub-sections
+  const [editingEducation, setEditingEducation] = useState<{ id?: string; school: string; degree: string; period: string; detail: string } | null>(null);
+  const [editingCertification, setEditingCertification] = useState<{ id?: string; name: string; issuer: string; year: string; url?: string } | null>(null);
+  const [editingAchievement, setEditingAchievement] = useState<{ id?: string; title: string; copy: string } | null>(null);
+  const [editingCapability, setEditingCapability] = useState<{ id?: string; title: string; level: number; category: string } | null>(null);
+
 
   // OTP Password Reset State
   const [showPwdModal, setShowPwdModal] = useState(false);
@@ -240,17 +255,140 @@ function AdminPage() {
   }, []);
 
   const refreshData = async () => {
+    // 1. Refresh analytics
     setCmsContent(getCMSContent());
     const realStats = await fetchRealAnalyticsStatsFromSupabase();
     setAnalyticsStats(realStats);
-    setProjects(fetchAllProjects());
-    setBlogs(fetchAllBlogs());
-    setServices(fetchAllServices());
-    setDeployments(getDeploymentsLocal());
+
+    // 2. Refresh projects from Supabase
+    try {
+      const { data: projData } = await supabase.from("projects").select("*").order("created_at", { ascending: false });
+      if (projData && projData.length > 0) {
+        const mapped = projData.map((p: Record<string, unknown>) => ({
+          id: p.id as string,
+          slug: (p.slug as string) || "",
+          title: (p.title as string) || "",
+          category: ((p.category as string) || "fullstack") as ShowcaseProject["category"],
+          summary: (p.summary as string) || "",
+          description: (p.description as string) || "",
+          tech_stack: (p.tech_stack as string[]) ?? [],
+          featured: (p.featured as boolean) ?? true,
+          status: ((p.status as string) || "Live") as ShowcaseProject["status"],
+          timeline: (p.timeline as string) || "1 Month",
+          role: (p.role as string) || "Full Stack Developer",
+          challenges: (p.challenges as string) || "",
+          solutions: (p.solutions as string) || "",
+          architecture: (p.architecture as string) || "",
+          live_url: (p.live_url as string) || undefined,
+          repo_url: (p.repo_url as string) || undefined,
+          cover_image: (p.cover_image as string) || undefined,
+          deployment_platform: (p.deployment_platform as string) || "Vercel",
+          features: (p.features as string[]) ?? [],
+        })) as ShowcaseProject[];
+        setProjects(mapped);
+      } else {
+        setProjects(fetchAllProjects());
+      }
+    } catch { setProjects(fetchAllProjects()); }
+
+    // 3. Refresh services from Supabase
+    try {
+      const { data: srvData } = await supabase.from("services").select("*");
+      if (srvData && srvData.length > 0) {
+        const mapped = srvData.map((s: Record<string, unknown>) => ({
+          id: s.id as string,
+          title: (s.title as string) || "",
+          category: ((s.category as string) || "web") as ServiceItem["category"],
+          shortDescription: (s.short_description as string) || "",
+          fullDescription: (s.full_description as string) || "",
+          deliverables: (s.deliverables as string[]) ?? [],
+          technologies: (s.technologies as string[]) ?? [],
+          accentColor: (s.accent_color as string) || "bg-sun",
+          iconName: (s.icon_name as string) || "Globe",
+        })) as ServiceItem[];
+        setServices(mapped);
+      } else {
+        setServices(fetchAllServices());
+      }
+    } catch { setServices(fetchAllServices()); }
+
+    // 4. Refresh blogs from Supabase
+    try {
+      const { data: blogData } = await supabase.from("blog_posts").select("*").order("created_at", { ascending: false });
+      if (blogData && blogData.length > 0) {
+        setBlogs(fetchAllBlogs());
+      } else {
+        setBlogs(fetchAllBlogs());
+      }
+    } catch { setBlogs(fetchAllBlogs()); }
+
+    // 5. Refresh deployments from Supabase
+    try {
+      const { data: depData } = await supabase.from("deployments").select("*").order("created_at", { ascending: true });
+      if (depData && depData.length > 0) {
+        const mapped = depData.map((d: Record<string, unknown>) => ({
+          id: d.id as string,
+          name: (d.name as string) || "",
+          category: (d.category as string) || "Cloud Hosting",
+          status: (d.status as string) || "Healthy",
+          badgeColor: (d.badge_color as string) || "bg-mint text-ink",
+          iconName: (d.icon_name as string) || "Globe2",
+          iconUrl: (d.icon_url as string) || undefined,
+          description: (d.description as string) || "",
+          hostedBuilds: (d.hosted_builds as HostedBuildCMS[]) || [],
+          link: (d.link as string) || undefined,
+        })) as DeploymentPlatformCMS[];
+        setDeployments(mapped);
+      } else {
+        setDeployments(getDeploymentsLocal());
+      }
+    } catch { setDeployments(getDeploymentsLocal()); }
+
+    // 6. Refresh tech stack & resume from local (Supabase-synced tables)
     setTechStack(getTechStackLocal());
     setResumeData(getResumeLocal());
-    setLeads(fetchAllLeads());
-    setSubscribers(fetchAllSubscribers());
+
+    // 7. Refresh leads from Supabase
+    try {
+      const { data: leadData } = await supabase
+        .from("contact_messages")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (leadData && leadData.length > 0) {
+        const mapped = leadData.map((m: Record<string, unknown>) => ({
+          id: m.id as string,
+          name: (m.name as string) || "",
+          email: (m.email as string) || "",
+          subject: (m.subject as string) || "Contact Message",
+          message: (m.message as string) || "",
+          status: ((m.is_read ? "contacted" : "new") as LeadEntry["status"]),
+          created_at: (m.created_at as string) || new Date().toISOString(),
+          source: "contact_form",
+        })) as LeadEntry[];
+        setLeads(mapped);
+      } else {
+        setLeads(fetchAllLeads());
+      }
+    } catch { setLeads(fetchAllLeads()); }
+
+    // 8. Refresh subscribers from Supabase
+    try {
+      const { data: subData } = await supabase
+        .from("newsletter_subscribers")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (subData && subData.length > 0) {
+        setSubscribers(subData.map((s: Record<string, unknown>) => ({
+          id: s.id as string,
+          email: (s.email as string) || "",
+          name: (s.name as string) || undefined,
+          source: (s.source as string) || "website",
+          created_at: (s.created_at as string) || new Date().toISOString(),
+        })) as SubscriberEntry[]);
+      } else {
+        setSubscribers(fetchAllSubscribers());
+      }
+    } catch { setSubscribers(fetchAllSubscribers()); }
   };
 
   useEffect(() => {
@@ -427,7 +565,7 @@ function AdminPage() {
     setTechnologiesInput("");
   };
 
-  const handleDeploymentSave = (e: React.FormEvent) => {
+  const handleDeploymentSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingDeployment?.name) return;
 
@@ -457,7 +595,7 @@ function AdminPage() {
       link: editingDeployment.link || "https://netlify.com",
     };
 
-    const updated = saveDeploymentLocal(dep);
+    const updated = await saveDeploymentLocal(dep);
     setDeployments(updated);
     setEditingDeployment(null);
     setHostedBuildsInput("");
@@ -592,8 +730,33 @@ function AdminPage() {
     timelinePage * timelinePageSize
   );
 
-  const totalLeadsPages = Math.ceil(leads.length / leadsPageSize) || 1;
-  const paginatedLeads = leads.slice(
+  // Lead CRM: filter by search + status, sort completed to bottom, then paginate
+  const LEAD_STATUS_LABELS: Record<string, { label: string; color: string; icon: string }> = {
+    new:        { label: "New",        color: "bg-mint text-ink",               icon: "🆕" },
+    contacted:  { label: "Contacted",  color: "bg-sky text-ink",                icon: "📞" },
+    in_progress:{ label: "In Progress",color: "bg-sun text-ink",               icon: "⚙️" },
+    qualified:  { label: "Qualified",  color: "bg-bubble text-ink",             icon: "⭐" },
+    follow_up:  { label: "Follow-up",  color: "bg-coral/80 text-ink",           icon: "🔔" },
+    completed:  { label: "Completed",  color: "bg-lime text-lime-foreground",   icon: "✅" },
+    closed:     { label: "Closed",     color: "bg-muted text-muted-foreground", icon: "🔒" },
+    archived:   { label: "Archived",   color: "bg-ink/20 text-ink",             icon: "📁" },
+  };
+  const filteredLeads = leads
+    .filter((l) => {
+      const q = leadsSearch.toLowerCase();
+      const matchSearch = !q || l.name.toLowerCase().includes(q) || l.email.toLowerCase().includes(q) || (l.subject || "").toLowerCase().includes(q) || l.message.toLowerCase().includes(q);
+      const matchStatus = leadsStatusFilter === "all" || l.status === leadsStatusFilter;
+      return matchSearch && matchStatus;
+    })
+    .sort((a, b) => {
+      // Push completed leads to the bottom
+      const aComp = a.status === "completed" || a.status === "closed" || a.status === "archived" ? 1 : 0;
+      const bComp = b.status === "completed" || b.status === "closed" || b.status === "archived" ? 1 : 0;
+      if (aComp !== bComp) return aComp - bComp;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  const totalLeadsPages = Math.ceil(filteredLeads.length / leadsPageSize) || 1;
+  const paginatedLeads = filteredLeads.slice(
     (leadsPage - 1) * leadsPageSize,
     leadsPage * leadsPageSize
   );
@@ -2085,8 +2248,8 @@ function AdminPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
-                              const updated = deleteDeploymentLocal(d.id);
+                            onClick={async () => {
+                              const updated = await deleteDeploymentLocal(d.id);
                               setDeployments(updated);
                             }}
                             className="rounded-lg border border-ink p-1 hover:bg-coral hover:text-coral-foreground"
@@ -2110,121 +2273,302 @@ function AdminPage() {
             </div>
           ) : null}
 
-          {/* TAB 8: RESUME & CAREER EXPERIENCE MANAGER */}
+          {/* TAB 8: RESUME & CAREER CMS — 6 SUBSECTIONS */}
           {activeTab === "resume" ? (
             <div className="space-y-6">
-              <div className="flex justify-between items-center">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b-2 border-ink pb-4">
                 <div>
-                  <h3 className="font-display text-xl font-bold">Resume & Career Experience Manager</h3>
-                  <p className="text-xs text-muted-foreground">Manage profile summary, work experience history, and downloadable resume links.</p>
+                  <h3 className="font-display text-xl font-bold">Resume & Career Manager</h3>
+                  <p className="text-xs text-muted-foreground">Manage all 6 resume sections — changes are saved instantly to the portfolio.</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setEditingExperience({
-                      role: "Software Developer",
-                      company: "ASP0705DEV",
-                      start_date: "2025",
-                      end_date: "Present",
-                      description: "Full stack engineering, Agentic AI, and cloud automation.",
-                    })
-                  }
-                  className="rounded-xl border-2 border-ink bg-mint px-4 py-2 text-xs font-bold doodle-shadow-sm flex items-center gap-1.5"
-                >
-                  <Plus className="h-4 w-4" /> Add Experience Entry
-                </button>
+                <span className="sticker bg-sun text-xs">
+                  {(resumeData.experience || []).length + (resumeData.education || []).length + (resumeData.certifications || []).length} Items
+                </span>
               </div>
 
-              {editingExperience ? (
-                <form onSubmit={handleExperienceSave} className="border-2 border-ink bg-sun/20 p-5 doodle-shadow rounded-2xl space-y-4 text-xs">
-                  <h4 className="font-bold text-base font-display">Edit Work Experience</h4>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="block">
-                      <span className="font-bold">Role Title</span>
-                      <input
-                        required
-                        value={editingExperience.role || ""}
-                        onChange={(e) => setEditingExperience((x) => ({ ...x, role: e.target.value }))}
-                        className="w-full mt-1 rounded-xl border border-ink p-2 bg-card"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="font-bold">Company Name</span>
-                      <input
-                        value={editingExperience.company || ""}
-                        onChange={(e) => setEditingExperience((x) => ({ ...x, company: e.target.value }))}
-                        className="w-full mt-1 rounded-xl border border-ink p-2 bg-card"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="font-bold">Start Date</span>
-                      <input
-                        value={editingExperience.start_date || ""}
-                        onChange={(e) => setEditingExperience((x) => ({ ...x, start_date: e.target.value }))}
-                        className="w-full mt-1 rounded-xl border border-ink p-2 bg-card"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="font-bold">End Date (or Present)</span>
-                      <input
-                        value={editingExperience.end_date || ""}
-                        onChange={(e) => setEditingExperience((x) => ({ ...x, end_date: e.target.value }))}
-                        className="w-full mt-1 rounded-xl border border-ink p-2 bg-card"
-                      />
-                    </label>
-                    <label className="block sm:col-span-2">
-                      <span className="font-bold">Role Description</span>
-                      <textarea
-                        rows={3}
-                        value={editingExperience.description || ""}
-                        onChange={(e) => setEditingExperience((x) => ({ ...x, description: e.target.value }))}
-                        className="w-full mt-1 rounded-xl border border-ink p-2 bg-card"
-                      />
-                    </label>
-                  </div>
-                  <div className="flex justify-end gap-2 pt-2">
-                    <button type="button" onClick={() => setEditingExperience(null)} className="rounded-xl border border-ink px-4 py-2 bg-card">
-                      Cancel
-                    </button>
-                    <button type="submit" className="rounded-xl border border-ink bg-coral text-coral-foreground px-5 py-2 font-bold">
-                      Save Experience Entry
-                    </button>
-                  </div>
-                </form>
-              ) : null}
-
-              <div className="space-y-3">
-                {resumeData.experience.map((exp) => (
-                  <div key={exp.id || exp.role} className="border-2 border-ink bg-card p-4 rounded-xl flex items-center justify-between doodle-shadow-sm">
-                    <div>
-                      <div className="font-bold text-sm font-display">{exp.role} — <span className="text-coral">{exp.company}</span></div>
-                      <div className="text-xs text-muted-foreground">{exp.start_date} — {exp.end_date || "Present"}</div>
-                      <p className="text-xs mt-1 text-muted-foreground max-w-xl">{exp.description}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setEditingExperience(exp)}
-                        className="rounded-lg border border-ink p-1.5 hover:bg-muted"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newExps = resumeData.experience.filter((x) => x.id !== exp.id);
-                          const newR = { ...resumeData, experience: newExps };
-                          saveResumeLocal(newR);
-                          setResumeData(newR);
-                        }}
-                        className="rounded-lg border border-ink p-1.5 hover:bg-coral hover:text-coral-foreground"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
+              {/* Sub-tab Navigation */}
+              <div className="flex flex-wrap gap-2 border-b border-ink/15 pb-3">
+                {[
+                  { key: "profile",       label: "📋 Profile Overview",  color: "bg-bubble" },
+                  { key: "capabilities",  label: "⚡ Capabilities",      color: "bg-sky" },
+                  { key: "experience",    label: "💼 Experience",         color: "bg-sun" },
+                  { key: "education",     label: "🎓 Education",          color: "bg-mint" },
+                  { key: "certifications",label: "🏅 Certifications",     color: "bg-coral/80" },
+                  { key: "achievements",  label: "🏆 Achievements",       color: "bg-lime" },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setResumeSubTab(tab.key as typeof resumeSubTab)}
+                    className={`rounded-xl border-2 border-ink px-3 py-1.5 text-xs font-bold transition-all touch-manipulation ${
+                      resumeSubTab === tab.key ? `${tab.color} text-ink doodle-shadow-sm` : "bg-card hover:bg-muted/40"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
                 ))}
               </div>
+
+              {/* ── PROFILE OVERVIEW ── */}
+              {resumeSubTab === "profile" && (
+                <div className="border-2 border-ink bg-bubble/20 p-5 rounded-2xl doodle-shadow space-y-4 text-xs">
+                  <h4 className="font-display text-base font-bold">Profile Overview</h4>
+                  <label className="block">
+                    <span className="font-bold">Professional Summary</span>
+                    <textarea
+                      rows={4}
+                      value={resumeData.profile?.summary || ""}
+                      onChange={(e) => {
+                        const r = { ...resumeData, profile: { ...(resumeData.profile || {}), summary: e.target.value } as typeof resumeData.profile };
+                        setResumeData(r); saveResumeLocal(r);
+                      }}
+                      className="w-full mt-1 rounded-xl border border-ink p-2.5 bg-card resize-none"
+                    />
+                  </label>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="block">
+                      <span className="font-bold">Location</span>
+                      <input value={resumeData.profile?.location || ""} onChange={(e) => { const r = { ...resumeData, profile: { ...(resumeData.profile || {}), location: e.target.value } as typeof resumeData.profile }; setResumeData(r); saveResumeLocal(r); }} className="w-full mt-1 rounded-xl border border-ink p-2 bg-card" />
+                    </label>
+                    <label className="block">
+                      <span className="font-bold">Availability Status</span>
+                      <input value={resumeData.profile?.availability || ""} onChange={(e) => { const r = { ...resumeData, profile: { ...(resumeData.profile || {}), availability: e.target.value } as typeof resumeData.profile }; setResumeData(r); saveResumeLocal(r); }} className="w-full mt-1 rounded-xl border border-ink p-2 bg-card" placeholder="e.g. Available for freelance" />
+                    </label>
+                    <label className="block">
+                      <span className="font-bold">Open To</span>
+                      <input value={resumeData.profile?.open_to || ""} onChange={(e) => { const r = { ...resumeData, profile: { ...(resumeData.profile || {}), open_to: e.target.value } as typeof resumeData.profile }; setResumeData(r); saveResumeLocal(r); }} className="w-full mt-1 rounded-xl border border-ink p-2 bg-card" placeholder="e.g. Collaborations & freelance" />
+                    </label>
+                    <label className="block">
+                      <span className="font-bold">Resume PDF URL</span>
+                      <input type="url" value={resumeData.profile?.resume_url || ""} onChange={(e) => { const r = { ...resumeData, profile: { ...(resumeData.profile || {}), resume_url: e.target.value } as typeof resumeData.profile }; setResumeData(r); saveResumeLocal(r); }} className="w-full mt-1 rounded-xl border border-ink p-2 bg-card" placeholder="https://drive.google.com/..." />
+                    </label>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground italic">Changes auto-save on each keystroke.</p>
+                </div>
+              )}
+
+              {/* ── CAPABILITIES ── */}
+              {resumeSubTab === "capabilities" && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-display text-base font-bold">Key Capabilities ({(resumeData.capabilities || []).length})</h4>
+                    <button
+                      type="button"
+                      onClick={() => setEditingCapability({ title: "New Skill", level: 80, category: "Frontend" })}
+                      className="rounded-xl border-2 border-ink bg-sky px-3 py-1.5 text-xs font-bold doodle-shadow-sm flex items-center gap-1.5 touch-manipulation"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Add Capability
+                    </button>
+                  </div>
+                  {editingCapability && (
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      const item: CapabilityItemCMS = { id: editingCapability.id || "cap_" + Date.now().toString(36), title: editingCapability.title, level: editingCapability.level, category: editingCapability.category };
+                      const caps = resumeData.capabilities || [];
+                      const idx = caps.findIndex((c) => c.id === item.id);
+                      const updated = idx >= 0 ? caps.map((c, i) => i === idx ? item : c) : [...caps, item];
+                      const r = { ...resumeData, capabilities: updated };
+                      setResumeData(r); saveResumeLocal(r); setEditingCapability(null);
+                    }} className="border-2 border-ink bg-sky/20 p-4 rounded-xl doodle-shadow space-y-3 text-xs">
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        <label className="block sm:col-span-1"><span className="font-bold">Skill Title</span><input required value={editingCapability.title} onChange={(e) => setEditingCapability(c => ({ ...c!, title: e.target.value }))} className="w-full mt-1 rounded-xl border border-ink p-2 bg-card" /></label>
+                        <label className="block"><span className="font-bold">Category</span><input value={editingCapability.category} onChange={(e) => setEditingCapability(c => ({ ...c!, category: e.target.value }))} className="w-full mt-1 rounded-xl border border-ink p-2 bg-card" placeholder="Frontend, AI & ML…" /></label>
+                        <label className="block"><span className="font-bold">Proficiency ({editingCapability.level}%)</span><input type="range" min={0} max={100} value={editingCapability.level} onChange={(e) => setEditingCapability(c => ({ ...c!, level: Number(e.target.value) }))} className="w-full mt-2" /></label>
+                      </div>
+                      <div className="flex justify-end gap-2"><button type="button" onClick={() => setEditingCapability(null)} className="rounded-xl border border-ink px-4 py-2 bg-card">Cancel</button><button type="submit" className="rounded-xl border border-ink bg-sky px-5 py-2 font-bold">Save</button></div>
+                    </form>
+                  )}
+                  <div className="space-y-2">
+                    {(resumeData.capabilities || []).map((cap) => (
+                      <div key={cap.id} className="border-2 border-ink bg-card p-3 rounded-xl flex items-center gap-4 doodle-shadow-sm">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-bold text-xs">{cap.title}</span>
+                            <span className="text-[11px] text-muted-foreground font-mono">{cap.level}%</span>
+                          </div>
+                          <div className="w-full bg-muted/50 rounded-full h-2 border border-ink/20">
+                            <div className="h-full rounded-full bg-gradient-to-r from-coral to-sun transition-all" style={{ width: `${cap.level}%` }} />
+                          </div>
+                          <span className="text-[10px] text-muted-foreground mt-0.5 block">{cap.category}</span>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          <button type="button" onClick={() => setEditingCapability(cap)} className="rounded-lg border border-ink p-1.5 hover:bg-muted touch-manipulation"><Edit className="h-3.5 w-3.5" /></button>
+                          <button type="button" onClick={() => { const updated = (resumeData.capabilities || []).filter(c => c.id !== cap.id); const r = { ...resumeData, capabilities: updated }; setResumeData(r); saveResumeLocal(r); }} className="rounded-lg border border-ink p-1.5 hover:bg-coral hover:text-coral-foreground touch-manipulation"><Trash2 className="h-3.5 w-3.5" /></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── EXPERIENCE ── */}
+              {resumeSubTab === "experience" && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-display text-base font-bold">Work Experience ({(resumeData.experience || []).length})</h4>
+                    <button type="button" onClick={() => setEditingExperience({ role: "Software Developer", company: "ASP0705DEV", start_date: "2025", end_date: "Present", description: "" })} className="rounded-xl border-2 border-ink bg-sun px-3 py-1.5 text-xs font-bold doodle-shadow-sm flex items-center gap-1.5 touch-manipulation"><Plus className="h-3.5 w-3.5" /> Add</button>
+                  </div>
+                  {editingExperience && (
+                    <form onSubmit={handleExperienceSave} className="border-2 border-ink bg-sun/20 p-4 doodle-shadow rounded-xl space-y-3 text-xs">
+                      <h4 className="font-bold text-sm font-display">Edit Work Experience</h4>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <label className="block"><span className="font-bold">Role Title</span><input required value={editingExperience.role || ""} onChange={(e) => setEditingExperience((x) => ({ ...x, role: e.target.value }))} className="w-full mt-1 rounded-xl border border-ink p-2 bg-card" /></label>
+                        <label className="block"><span className="font-bold">Company</span><input value={editingExperience.company || ""} onChange={(e) => setEditingExperience((x) => ({ ...x, company: e.target.value }))} className="w-full mt-1 rounded-xl border border-ink p-2 bg-card" /></label>
+                        <label className="block"><span className="font-bold">Start Date</span><input value={editingExperience.start_date || ""} onChange={(e) => setEditingExperience((x) => ({ ...x, start_date: e.target.value }))} className="w-full mt-1 rounded-xl border border-ink p-2 bg-card" /></label>
+                        <label className="block"><span className="font-bold">End Date</span><input value={editingExperience.end_date || ""} onChange={(e) => setEditingExperience((x) => ({ ...x, end_date: e.target.value }))} className="w-full mt-1 rounded-xl border border-ink p-2 bg-card" placeholder="Present" /></label>
+                        <label className="block sm:col-span-2"><span className="font-bold">Description</span><textarea rows={3} value={editingExperience.description || ""} onChange={(e) => setEditingExperience((x) => ({ ...x, description: e.target.value }))} className="w-full mt-1 rounded-xl border border-ink p-2 bg-card" /></label>
+                      </div>
+                      <div className="flex justify-end gap-2"><button type="button" onClick={() => setEditingExperience(null)} className="rounded-xl border border-ink px-4 py-2 bg-card">Cancel</button><button type="submit" className="rounded-xl border border-ink bg-sun px-5 py-2 font-bold">Save</button></div>
+                    </form>
+                  )}
+                  <div className="space-y-2">
+                    {(resumeData.experience || []).map((exp) => (
+                      <div key={exp.id || exp.role} className="border-2 border-ink bg-card p-4 rounded-xl flex items-start justify-between doodle-shadow-sm gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-sm font-display">{exp.role} — <span className="text-coral">{exp.company}</span></div>
+                          <div className="text-xs text-muted-foreground">{exp.start_date} — {exp.end_date || "Present"}</div>
+                          <p className="text-xs mt-1 text-muted-foreground">{exp.description}</p>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          <button type="button" onClick={() => setEditingExperience(exp)} className="rounded-lg border border-ink p-1.5 hover:bg-muted touch-manipulation"><Edit className="h-4 w-4" /></button>
+                          <button type="button" onClick={() => { const r = { ...resumeData, experience: (resumeData.experience || []).filter(x => x.id !== exp.id) }; saveResumeLocal(r); setResumeData(r); }} className="rounded-lg border border-ink p-1.5 hover:bg-coral hover:text-coral-foreground touch-manipulation"><Trash2 className="h-4 w-4" /></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── EDUCATION ── */}
+              {resumeSubTab === "education" && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-display text-base font-bold">Education ({(resumeData.education || []).length})</h4>
+                    <button type="button" onClick={() => setEditingEducation({ school: "University Name", degree: "Degree", period: "2020–2024", detail: "" })} className="rounded-xl border-2 border-ink bg-mint px-3 py-1.5 text-xs font-bold doodle-shadow-sm flex items-center gap-1.5 touch-manipulation"><Plus className="h-3.5 w-3.5" /> Add</button>
+                  </div>
+                  {editingEducation && (
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      const item: EducationItemCMS = { id: editingEducation.id || "edu_" + Date.now().toString(36), school: editingEducation.school, degree: editingEducation.degree, period: editingEducation.period, detail: editingEducation.detail };
+                      const list = resumeData.education || [];
+                      const idx = list.findIndex(x => x.id === item.id);
+                      const updated = idx >= 0 ? list.map((x, i) => i === idx ? item : x) : [...list, item];
+                      const r = { ...resumeData, education: updated };
+                      setResumeData(r); saveResumeLocal(r); setEditingEducation(null);
+                    }} className="border-2 border-ink bg-mint/20 p-4 doodle-shadow rounded-xl space-y-3 text-xs">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <label className="block sm:col-span-2"><span className="font-bold">Institution / Degree Title</span><input required value={editingEducation.school} onChange={(e) => setEditingEducation(x => ({ ...x!, school: e.target.value }))} className="w-full mt-1 rounded-xl border border-ink p-2 bg-card" /></label>
+                        <label className="block"><span className="font-bold">Degree / Qualification</span><input value={editingEducation.degree} onChange={(e) => setEditingEducation(x => ({ ...x!, degree: e.target.value }))} className="w-full mt-1 rounded-xl border border-ink p-2 bg-card" /></label>
+                        <label className="block"><span className="font-bold">Period / Location</span><input value={editingEducation.period} onChange={(e) => setEditingEducation(x => ({ ...x!, period: e.target.value }))} className="w-full mt-1 rounded-xl border border-ink p-2 bg-card" /></label>
+                        <label className="block sm:col-span-2"><span className="font-bold">Detail / Honors</span><input value={editingEducation.detail} onChange={(e) => setEditingEducation(x => ({ ...x!, detail: e.target.value }))} className="w-full mt-1 rounded-xl border border-ink p-2 bg-card" /></label>
+                      </div>
+                      <div className="flex justify-end gap-2"><button type="button" onClick={() => setEditingEducation(null)} className="rounded-xl border border-ink px-4 py-2 bg-card">Cancel</button><button type="submit" className="rounded-xl border border-ink bg-mint px-5 py-2 font-bold">Save</button></div>
+                    </form>
+                  )}
+                  <div className="space-y-2">
+                    {(resumeData.education || []).map((edu) => (
+                      <div key={edu.id} className="border-2 border-ink bg-card p-4 rounded-xl flex items-start justify-between doodle-shadow-sm gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-sm font-display">{edu.school}</div>
+                          <div className="text-xs text-muted-foreground">{edu.degree} · {edu.period}</div>
+                          <p className="text-xs mt-1 text-muted-foreground">{edu.detail}</p>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          <button type="button" onClick={() => setEditingEducation(edu)} className="rounded-lg border border-ink p-1.5 hover:bg-muted touch-manipulation"><Edit className="h-4 w-4" /></button>
+                          <button type="button" onClick={() => { const r = { ...resumeData, education: (resumeData.education || []).filter(x => x.id !== edu.id) }; saveResumeLocal(r); setResumeData(r); }} className="rounded-lg border border-ink p-1.5 hover:bg-coral hover:text-coral-foreground touch-manipulation"><Trash2 className="h-4 w-4" /></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── CERTIFICATIONS ── */}
+              {resumeSubTab === "certifications" && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-display text-base font-bold">Certifications ({(resumeData.certifications || []).length})</h4>
+                    <button type="button" onClick={() => setEditingCertification({ name: "New Certification", issuer: "Issuing Body", year: "2025" })} className="rounded-xl border-2 border-ink bg-coral/80 px-3 py-1.5 text-xs font-bold doodle-shadow-sm flex items-center gap-1.5 touch-manipulation"><Plus className="h-3.5 w-3.5" /> Add</button>
+                  </div>
+                  {editingCertification && (
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      const item: CertificationItemCMS = { id: editingCertification.id || "cert_" + Date.now().toString(36), name: editingCertification.name, issuer: editingCertification.issuer, year: editingCertification.year, url: editingCertification.url };
+                      const list = resumeData.certifications || [];
+                      const idx = list.findIndex(x => x.id === item.id);
+                      const updated = idx >= 0 ? list.map((x, i) => i === idx ? item : x) : [...list, item];
+                      const r = { ...resumeData, certifications: updated };
+                      setResumeData(r); saveResumeLocal(r); setEditingCertification(null);
+                    }} className="border-2 border-ink bg-coral/10 p-4 doodle-shadow rounded-xl space-y-3 text-xs">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <label className="block sm:col-span-2"><span className="font-bold">Certification Name</span><input required value={editingCertification.name} onChange={(e) => setEditingCertification(x => ({ ...x!, name: e.target.value }))} className="w-full mt-1 rounded-xl border border-ink p-2 bg-card" /></label>
+                        <label className="block"><span className="font-bold">Issuer</span><input value={editingCertification.issuer} onChange={(e) => setEditingCertification(x => ({ ...x!, issuer: e.target.value }))} className="w-full mt-1 rounded-xl border border-ink p-2 bg-card" /></label>
+                        <label className="block"><span className="font-bold">Year</span><input value={editingCertification.year} onChange={(e) => setEditingCertification(x => ({ ...x!, year: e.target.value }))} className="w-full mt-1 rounded-xl border border-ink p-2 bg-card" /></label>
+                        <label className="block sm:col-span-2"><span className="font-bold">Credential URL (optional)</span><input type="url" value={editingCertification.url || ""} onChange={(e) => setEditingCertification(x => ({ ...x!, url: e.target.value }))} className="w-full mt-1 rounded-xl border border-ink p-2 bg-card" placeholder="https://..." /></label>
+                      </div>
+                      <div className="flex justify-end gap-2"><button type="button" onClick={() => setEditingCertification(null)} className="rounded-xl border border-ink px-4 py-2 bg-card">Cancel</button><button type="submit" className="rounded-xl border border-ink bg-coral text-coral-foreground px-5 py-2 font-bold">Save</button></div>
+                    </form>
+                  )}
+                  <div className="space-y-2">
+                    {(resumeData.certifications || []).map((cert) => (
+                      <div key={cert.id} className="border-2 border-ink bg-card p-4 rounded-xl flex items-center justify-between doodle-shadow-sm gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-xs font-display">{cert.name}</div>
+                          <div className="text-[11px] text-muted-foreground">{cert.issuer} · {cert.year}</div>
+                          {cert.url && <a href={cert.url} target="_blank" rel="noreferrer" className="text-[11px] text-coral hover:underline font-mono">View Credential ↗</a>}
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          <button type="button" onClick={() => setEditingCertification(cert)} className="rounded-lg border border-ink p-1.5 hover:bg-muted touch-manipulation"><Edit className="h-3.5 w-3.5" /></button>
+                          <button type="button" onClick={() => { const r = { ...resumeData, certifications: (resumeData.certifications || []).filter(x => x.id !== cert.id) }; saveResumeLocal(r); setResumeData(r); }} className="rounded-lg border border-ink p-1.5 hover:bg-coral hover:text-coral-foreground touch-manipulation"><Trash2 className="h-3.5 w-3.5" /></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── ACHIEVEMENTS ── */}
+              {resumeSubTab === "achievements" && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-display text-base font-bold">Achievements ({(resumeData.achievements || []).length})</h4>
+                    <button type="button" onClick={() => setEditingAchievement({ title: "New Achievement", copy: "" })} className="rounded-xl border-2 border-ink bg-lime px-3 py-1.5 text-xs font-bold doodle-shadow-sm flex items-center gap-1.5 touch-manipulation"><Plus className="h-3.5 w-3.5" /> Add</button>
+                  </div>
+                  {editingAchievement && (
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      const item: AchievementItemCMS = { id: editingAchievement.id || "ach_" + Date.now().toString(36), title: editingAchievement.title, copy: editingAchievement.copy, published: true };
+                      const list = resumeData.achievements || [];
+                      const idx = list.findIndex(x => x.id === item.id);
+                      const updated = idx >= 0 ? list.map((x, i) => i === idx ? item : x) : [...list, item];
+                      const r = { ...resumeData, achievements: updated };
+                      setResumeData(r); saveResumeLocal(r); setEditingAchievement(null);
+                    }} className="border-2 border-ink bg-lime/20 p-4 doodle-shadow rounded-xl space-y-3 text-xs">
+                      <label className="block"><span className="font-bold">Achievement Title</span><input required value={editingAchievement.title} onChange={(e) => setEditingAchievement(x => ({ ...x!, title: e.target.value }))} className="w-full mt-1 rounded-xl border border-ink p-2 bg-card" /></label>
+                      <label className="block"><span className="font-bold">Description</span><textarea rows={2} value={editingAchievement.copy} onChange={(e) => setEditingAchievement(x => ({ ...x!, copy: e.target.value }))} className="w-full mt-1 rounded-xl border border-ink p-2 bg-card" /></label>
+                      <div className="flex justify-end gap-2"><button type="button" onClick={() => setEditingAchievement(null)} className="rounded-xl border border-ink px-4 py-2 bg-card">Cancel</button><button type="submit" className="rounded-xl border border-ink bg-lime px-5 py-2 font-bold">Save</button></div>
+                    </form>
+                  )}
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {(resumeData.achievements || []).map((ach) => (
+                      <div key={ach.id} className={`border-2 border-ink bg-card p-4 rounded-xl doodle-shadow-sm transition-opacity ${ach.published === false ? "opacity-50" : ""}`}>
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-bold text-xs font-display">{ach.title}</div>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">{ach.copy}</p>
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            <button type="button" title={ach.published === false ? "Publish" : "Unpublish"} onClick={() => { const r = { ...resumeData, achievements: (resumeData.achievements || []).map(a => a.id === ach.id ? { ...a, published: !ach.published } : a) }; setResumeData(r); saveResumeLocal(r); }} className={`rounded-lg border border-ink p-1.5 touch-manipulation text-[10px] font-bold ${ach.published === false ? "bg-muted" : "bg-mint"}`}>{ach.published === false ? "OFF" : "ON"}</button>
+                            <button type="button" onClick={() => setEditingAchievement(ach)} className="rounded-lg border border-ink p-1.5 hover:bg-muted touch-manipulation"><Edit className="h-3.5 w-3.5" /></button>
+                            <button type="button" onClick={() => { const r = { ...resumeData, achievements: (resumeData.achievements || []).filter(a => a.id !== ach.id) }; setResumeData(r); saveResumeLocal(r); }} className="rounded-lg border border-ink p-1.5 hover:bg-coral hover:text-coral-foreground touch-manipulation"><Trash2 className="h-3.5 w-3.5" /></button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : null}
 
@@ -2397,84 +2741,184 @@ function AdminPage() {
           {/* TAB 11: LEAD CRM */}
           {activeTab === "leads" ? (
             <div className="border-2 border-ink bg-card p-6 doodle-shadow rounded-2xl space-y-5">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b-2 border-ink/20 pb-4">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b-2 border-ink/20 pb-4">
                 <div>
-                  <h3 className="font-display text-xl font-bold">Centralized Lead Management Inbox</h3>
+                  <h3 className="font-display text-xl font-bold">Lead CRM Inbox</h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Real-time inquiries and messages received from public contact forms and website interactions.
+                    {leads.length} total leads · {filteredLeads.length} filtered · Last refreshed in real-time from Supabase.
                   </p>
                 </div>
-                <span className="sticker bg-sun text-ink font-mono font-bold text-xs">
-                  {leads.length} Total Leads Recorded
-                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <input
+                    type="search"
+                    placeholder="Search leads…"
+                    value={leadsSearch}
+                    onChange={(e) => { setLeadsSearch(e.target.value); setLeadsPage(1); }}
+                    className="rounded-xl border-2 border-ink bg-background px-3 py-1.5 text-xs font-mono outline-none w-44 focus:ring-2 focus:ring-ring"
+                  />
+                  <span className="sticker bg-sun text-ink font-mono font-bold text-xs">{leads.length} Total</span>
+                </div>
               </div>
 
-              {leads.length === 0 ? (
+              {/* Status Tab Bar */}
+              <div className="flex flex-wrap gap-2 pb-1">
+                {[
+                  { key: "all", label: "All", color: "bg-ink text-background", count: leads.length },
+                  ...Object.entries(LEAD_STATUS_LABELS).map(([k, v]) => ({
+                    key: k,
+                    label: v.label,
+                    color: v.color,
+                    count: leads.filter(l => l.status === k).length,
+                  }))
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => { setLeadsStatusFilter(tab.key as typeof leadsStatusFilter); setLeadsPage(1); }}
+                    className={`inline-flex items-center gap-1.5 rounded-full border-2 border-ink px-3 py-1 text-xs font-bold transition-all touch-manipulation ${
+                      leadsStatusFilter === tab.key ? `${tab.color} doodle-shadow-sm scale-[1.04]` : "bg-card text-foreground hover:bg-muted/40"
+                    }`}
+                  >
+                    {tab.label}
+                    {tab.count > 0 && (
+                      <span className={`rounded-full px-1.5 py-0 text-[10px] font-black ${leadsStatusFilter === tab.key ? "bg-white/30" : "bg-muted/60"}`}>
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Table */}
+              {filteredLeads.length === 0 ? (
                 <div className="text-center py-12 text-xs text-muted-foreground italic border-2 border-dashed border-ink/30 rounded-xl">
-                  No lead inquiries recorded yet. Leads submitted through contact forms will populate here.
+                  {leadsSearch || leadsStatusFilter !== "all" ? "No leads match your current filters." : "No lead inquiries recorded yet."}
                 </div>
               ) : (
-                <div className="w-full">
-                  <table className="w-full text-left text-xs border-collapse">
+                <div className="w-full overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse min-w-[640px]">
                     <thead>
                       <tr className="border-b-2 border-ink bg-muted/60 text-ink">
-                        <th className="p-3.5 font-bold uppercase tracking-wider w-24">Date</th>
-                        <th className="p-3.5 font-bold uppercase tracking-wider w-1/4">Name &amp; Email</th>
-                        <th className="p-3.5 font-bold uppercase tracking-wider w-28">Source</th>
-                        <th className="p-3.5 font-bold uppercase tracking-wider">Subject &amp; Message</th>
-                        <th className="p-3.5 font-bold uppercase tracking-wider text-right w-36">Status</th>
+                        <th className="p-3 font-bold uppercase tracking-wider w-20">Date</th>
+                        <th className="p-3 font-bold uppercase tracking-wider">Contact</th>
+                        <th className="p-3 font-bold uppercase tracking-wider">Subject &amp; Message</th>
+                        <th className="p-3 font-bold uppercase tracking-wider w-40 text-center">Status</th>
+                        <th className="p-3 font-bold uppercase tracking-wider w-10"></th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y border-b-2 border-ink">
-                      {paginatedLeads.map((l) => (
-                        <tr key={l.id} className="hover:bg-muted/20 transition-colors">
-                          <td className="p-3.5 align-top font-mono text-[11px] text-muted-foreground whitespace-nowrap">
-                            {new Date(l.created_at).toLocaleDateString()}
-                          </td>
+                    <tbody className="divide-y divide-ink/10">
+                      {paginatedLeads.map((l) => {
+                        const statusInfo = LEAD_STATUS_LABELS[l.status] || LEAD_STATUS_LABELS.new;
+                        return (
+                          <tr key={l.id} className={`hover:bg-muted/20 transition-colors ${l.status === "completed" || l.status === "closed" || l.status === "archived" ? "opacity-60" : ""}`}>
+                            <td className="p-3 align-top font-mono text-[11px] text-muted-foreground whitespace-nowrap">
+                              {new Date(l.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
+                            </td>
 
-                          <td className="p-3.5 align-top space-y-1">
-                            <div className="font-bold text-foreground text-sm leading-snug">{l.name}</div>
-                            <a
-                              href={`mailto:${l.email}`}
-                              className="inline-block text-xs font-mono font-semibold text-coral hover:underline break-all"
-                            >
-                              {l.email}
-                            </a>
-                          </td>
+                            <td className="p-3 align-top min-w-[160px]">
+                              <div className="font-bold text-foreground text-xs leading-snug">{l.name}</div>
+                              <a href={`mailto:${l.email}`} className="inline-block text-[11px] font-mono font-semibold text-coral hover:underline break-all mt-0.5">
+                                {l.email}
+                              </a>
+                            </td>
 
-                          <td className="p-3.5 align-top">
-                            <span className="sticker bg-sun text-ink font-mono font-bold text-[11px]">
-                              {l.source || "contact_form"}
-                            </span>
-                          </td>
+                            <td className="p-3 align-top max-w-xs">
+                              {l.subject && <div className="font-bold text-foreground text-xs leading-snug break-words mb-0.5">{l.subject}</div>}
+                              <div className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2 break-words">{l.message}</div>
+                            </td>
 
-                          <td className="p-3.5 align-top space-y-1">
-                            {l.subject ? (
-                              <div className="font-bold text-foreground text-xs leading-snug break-words">
-                                {l.subject}
+                            <td className="p-3 align-top text-center">
+                              <div className="flex flex-wrap gap-1 justify-center">
+                                {Object.entries(LEAD_STATUS_LABELS).map(([k, v]) => (
+                                  <button
+                                    key={k}
+                                    type="button"
+                                    onClick={() => handleStatusChange(l.id, k as LeadEntry["status"])}
+                                    title={v.label}
+                                    className={`rounded-full border px-2 py-0.5 text-[10px] font-bold transition-all touch-manipulation ${
+                                      l.status === k
+                                        ? `${v.color} border-ink scale-105 doodle-shadow-sm`
+                                        : "border-ink/20 bg-muted/30 text-muted-foreground hover:border-ink hover:bg-muted/60"
+                                    }`}
+                                  >
+                                    {v.icon} {v.label}
+                                  </button>
+                                ))}
                               </div>
-                            ) : null}
-                            <div className="text-xs text-muted-foreground leading-relaxed whitespace-normal break-words">
-                              {l.message}
-                            </div>
-                          </td>
+                            </td>
 
-                          <td className="p-3.5 align-top text-right">
-                            <select
-                              value={l.status}
-                              onChange={(e) => handleStatusChange(l.id, e.target.value as LeadEntry["status"])}
-                              className="rounded-xl border-2 border-ink bg-background px-2.5 py-1.5 font-bold text-xs text-foreground cursor-pointer outline-none focus:ring-2 focus:ring-ring hover:bg-muted/30 transition-colors"
-                            >
-                              <option value="new">🆕 New</option>
-                              <option value="contacted">📞 Contacted</option>
-                              <option value="in_progress">⚙️ In Progress</option>
-                              <option value="archived">📁 Archived</option>
-                            </select>
-                          </td>
-                        </tr>
-                      ))}
+                            <td className="p-3 align-top">
+                              <button
+                                type="button"
+                                title="Delete lead"
+                                onClick={async () => {
+                                  if (!confirm(`Delete lead from ${l.name}? This cannot be undone.`)) return;
+                                  const updated = await deleteLead(l.id);
+                                  setLeads(updated);
+                                }}
+                                className="rounded-lg border border-ink/30 p-1.5 text-muted-foreground hover:bg-coral hover:text-coral-foreground hover:border-coral transition-colors touch-manipulation"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
+                </div>
+              )}
+
+              {/* Pagination Controls */}
+              {filteredLeads.length > 0 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-ink/15 text-xs">
+                  <div className="flex items-center gap-2 text-muted-foreground font-mono">
+                    Showing <strong className="text-foreground">{Math.min((leadsPage - 1) * leadsPageSize + 1, filteredLeads.length)}</strong>–<strong className="text-foreground">{Math.min(leadsPage * leadsPageSize, filteredLeads.length)}</strong> of <strong className="text-foreground">{filteredLeads.length}</strong>
+                    <select
+                      value={leadsPageSize}
+                      onChange={(e) => { setLeadsPageSize(Number(e.target.value)); setLeadsPage(1); }}
+                      className="ml-2 rounded-lg border border-ink bg-background px-2 py-1 font-bold outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      {[10, 25, 50, 100].map((n) => <option key={n} value={n}>{n} / page</option>)}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      disabled={leadsPage === 1}
+                      onClick={() => setLeadsPage(p => p - 1)}
+                      className="rounded-lg border-2 border-ink px-3 py-1.5 font-bold disabled:opacity-40 hover:bg-muted touch-manipulation"
+                    >
+                      ← Prev
+                    </button>
+                    {Array.from({ length: Math.min(totalLeadsPages, 7) }, (_, i) => {
+                      let pg = i + 1;
+                      if (totalLeadsPages > 7) {
+                        if (leadsPage <= 4) pg = i + 1;
+                        else if (leadsPage >= totalLeadsPages - 3) pg = totalLeadsPages - 6 + i;
+                        else pg = leadsPage - 3 + i;
+                      }
+                      return (
+                        <button
+                          key={pg}
+                          type="button"
+                          onClick={() => setLeadsPage(pg)}
+                          className={`rounded-lg border-2 border-ink w-8 h-8 font-bold transition-all touch-manipulation ${leadsPage === pg ? "bg-ink text-background" : "bg-card hover:bg-muted"}`}
+                        >
+                          {pg}
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      disabled={leadsPage === totalLeadsPages}
+                      onClick={() => setLeadsPage(p => p + 1)}
+                      className="rounded-lg border-2 border-ink px-3 py-1.5 font-bold disabled:opacity-40 hover:bg-muted touch-manipulation"
+                    >
+                      Next →
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

@@ -4,10 +4,11 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { type ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
@@ -116,6 +117,16 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+function ScrollToTop() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }
+  }, [pathname]);
+  return null;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
@@ -125,6 +136,7 @@ function RootComponent() {
         <DoodleBackground />
         <DoodleCursor />
         <ScrollProgress />
+        <ScrollToTop />
         <Toaster />
         <Outlet />
       </ThemeProvider>
