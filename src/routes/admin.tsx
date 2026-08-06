@@ -213,8 +213,12 @@ function AdminPage() {
   const [technologiesInput, setTechnologiesInput] = useState("");
   const [hostedBuildsInput, setHostedBuildsInput] = useState("");
 
-  // Search Filters
+  // Search & Pagination Filters
   const [timelineSearch, setTimelineSearch] = useState("");
+  const [timelinePage, setTimelinePage] = useState(1);
+  const [timelinePageSize, setTimelinePageSize] = useState(10);
+  const [leadsPage, setLeadsPage] = useState(1);
+  const [leadsPageSize, setLeadsPageSize] = useState(10);
 
   // OTP Password Reset State
   const [showPwdModal, setShowPwdModal] = useState(false);
@@ -578,6 +582,18 @@ function AdminPage() {
       t.browser.toLowerCase().includes(q)
     );
   });
+
+  const totalTimelinePages = Math.ceil(filteredTimeline.length / timelinePageSize) || 1;
+  const paginatedTimeline = filteredTimeline.slice(
+    (timelinePage - 1) * timelinePageSize,
+    timelinePage * timelinePageSize
+  );
+
+  const totalLeadsPages = Math.ceil(leads.length / leadsPageSize) || 1;
+  const paginatedLeads = leads.slice(
+    (leadsPage - 1) * leadsPageSize,
+    leadsPage * leadsPageSize
+  );
 
   return (
     <>
@@ -1030,7 +1046,7 @@ function AdminPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y border-b-2 border-ink">
-                        {filteredTimeline.map((sess) => (
+                        {paginatedTimeline.map((sess) => (
                           <tr key={sess.session_id} className="hover:bg-muted/20 transition-colors">
                             <td className="p-3.5 align-top">
                               {sess.linked_email ? (
@@ -1094,6 +1110,54 @@ function AdminPage() {
                         ))}
                       </tbody>
                     </table>
+                  </div>
+
+                  {/* PAGINATION TOOLBAR */}
+                  <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t-2 border-ink/15 text-xs font-semibold">
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">Rows per page:</span>
+                      <select
+                        value={timelinePageSize}
+                        onChange={(e) => {
+                          setTimelinePageSize(Number(e.target.value));
+                          setTimelinePage(1);
+                        }}
+                        className="rounded-xl border-2 border-ink bg-card px-2.5 py-1 text-xs font-bold outline-none"
+                      >
+                        <option value={10}>10</option>
+                        <option value={25}>25</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                      </select>
+                      <span className="text-muted-foreground ml-2 font-mono">
+                        Showing {Math.min((timelinePage - 1) * timelinePageSize + 1, filteredTimeline.length)}–
+                        {Math.min(timelinePage * timelinePageSize, filteredTimeline.length)} of {filteredTimeline.length} sessions
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        disabled={timelinePage <= 1}
+                        onClick={() => setTimelinePage((p) => Math.max(1, p - 1))}
+                        className="rounded-xl border-2 border-ink bg-card px-3 py-1.5 text-xs font-bold doodle-shadow-sm hover:bg-muted disabled:opacity-40"
+                      >
+                        Previous
+                      </button>
+                      
+                      <span className="px-3 font-mono font-bold">
+                        Page {timelinePage} of {totalTimelinePages}
+                      </span>
+
+                      <button
+                        type="button"
+                        disabled={timelinePage >= totalTimelinePages}
+                        onClick={() => setTimelinePage((p) => Math.min(totalTimelinePages, p + 1))}
+                        className="rounded-xl border-2 border-ink bg-card px-3 py-1.5 text-xs font-bold doodle-shadow-sm hover:bg-muted disabled:opacity-40"
+                      >
+                        Next
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -2374,7 +2438,7 @@ function AdminPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y border-b-2 border-ink">
-                      {leads.map((l) => (
+                      {paginatedLeads.map((l) => (
                         <tr key={l.id} className="hover:bg-muted/20 transition-colors">
                           <td className="p-3.5 align-top font-mono text-[11px] text-muted-foreground whitespace-nowrap">
                             {new Date(l.created_at).toLocaleDateString()}
