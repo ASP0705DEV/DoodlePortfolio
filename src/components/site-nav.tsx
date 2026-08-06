@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Menu, X, Shield, BookOpen, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ASPLogo } from "@/components/doodles";
-import { ThemeSwitcher } from "@/components/theme-switcher";
+import { DoodleLogo } from "@/components/doodle-logo";
 
 const links = [
   { label: "Services", to: "/", hash: "services" },
@@ -39,8 +38,8 @@ export function SiteNav() {
         className="flex items-center justify-between border-2 border-ink bg-card/90 px-4 py-2.5 backdrop-blur doodle-shadow"
         style={{ borderRadius: "18px 24px 18px 26px" }}
       >
-        <Link to="/" className="group flex items-center gap-2 transition-transform hover:scale-105" aria-label="ASP Home">
-          <ASPLogo className="h-9 w-auto text-ink" />
+        <Link to="/" className="transition-transform hover:scale-105" aria-label="ASP0705DEV Home">
+          <DoodleLogo />
         </Link>
 
         <div className="hidden items-center gap-1 xl:flex">

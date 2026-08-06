@@ -1514,6 +1514,36 @@ export function updateLeadStatus(id: string, status: LeadEntry["status"]): LeadE
   return updated;
 }
 
+export async function deleteLead(id: string): Promise<LeadEntry[]> {
+  try {
+    await supabase.from("contact_messages").delete().eq("id", id);
+  } catch {
+    /* fallback */
+  }
+  const current = fetchAllLeads();
+  const updated = current.filter((l) => l.id !== id);
+  setLocal(STORAGE_KEYS.LEADS, updated);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("cms-updated"));
+  }
+  return updated;
+}
+
+export async function deleteMultipleLeads(ids: string[]): Promise<LeadEntry[]> {
+  try {
+    await supabase.from("contact_messages").delete().in("id", ids);
+  } catch {
+    /* fallback */
+  }
+  const current = fetchAllLeads();
+  const updated = current.filter((l) => !ids.includes(l.id));
+  setLocal(STORAGE_KEYS.LEADS, updated);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("cms-updated"));
+  }
+  return updated;
+}
+
 export async function addSubscriber(email: string, name?: string, source: string = "website"): Promise<boolean> {
   try {
     await supabase.from("newsletter_subscribers").insert({

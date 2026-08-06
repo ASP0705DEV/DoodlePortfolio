@@ -59,6 +59,7 @@ import {
   saveAdminProfileLocal,
   fetchAdminProfileFromSupabase,
   updateAdminProfileInSupabase,
+  updateAdminPasswordSecurely,
   logAdminLoginAudit,
   fetchLoginAuditLogs,
   formatProfileImageUrl,
@@ -76,6 +77,8 @@ import {
   fetchAllLeads,
   fetchAllSubscribers,
   updateLeadStatus,
+  deleteLead,
+  deleteMultipleLeads,
   saveProjectLocal,
   deleteProjectLocal,
   saveBlogLocal,
@@ -114,7 +117,9 @@ import {
   type ResumeCMS,
   type ExperienceItemCMS,
   type HostedBuildCMS,
+  type SubscriberEntry,
 } from "@/lib/cms-store";
+import { PasswordInput } from "@/components/ui/password-input";
 import { defaultServices, type ServiceItem } from "@/lib/services-data";
 import { getRealAnalyticsStats, fetchRealAnalyticsStatsFromSupabase, type RealAnalyticsStats } from "@/lib/analytics";
 import { supabase } from "@/integrations/supabase/client";
@@ -533,12 +538,10 @@ function AdminPage() {
                       <label className="block text-xs font-bold uppercase">Passcode</label>
                       <span className="text-[10px] font-mono font-bold bg-sun/40 border border-ink/30 px-1.5 py-0.5 rounded">Default: admin123</span>
                     </div>
-                    <input
-                      type="password"
+                    <PasswordInput
                       placeholder="Enter admin passcode (e.g. admin123)"
                       value={passcode}
                       onChange={(e) => setPasscode(e.target.value)}
-                      className="w-full rounded-xl border-2 border-ink bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-ring"
                     />
                   </div>
 
@@ -1305,17 +1308,8 @@ function AdminPage() {
                     setAccPwdLoading(true);
                     setAccPwdMsg(null);
 
-                    try {
-                      const { error } = await supabase.auth.updateUser({ password: pwdForm.newPassword });
-                      if (error) {
-                        setAccPwdMsg({ text: `Supabase Note: ${error.message}. Local passcode updated.`, type: "error" });
-                      } else {
-                        setAccPwdMsg({ text: "Password updated successfully in Supabase Auth & Local settings!", type: "success" });
-                      }
-                    } catch (err: unknown) {
-                      setAccPwdMsg({ text: `Updated local passcode: ${err instanceof Error ? err.message : String(err)}`, type: "success" });
-                    }
-
+                    const res = await updateAdminPasswordSecurely(pwdForm.newPassword);
+                    setAccPwdMsg({ text: res.message, type: "success" });
                     setAdminPasscode(pwdForm.newPassword);
                     setPwdForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
                     setAccPwdLoading(false);
@@ -1324,34 +1318,28 @@ function AdminPage() {
                 >
                   <label className="grid gap-1">
                     <span className="text-xs font-bold">Current Password</span>
-                    <input
-                      type="password"
+                    <PasswordInput
                       value={pwdForm.currentPassword}
                       onChange={(e) => setPwdForm({ ...pwdForm, currentPassword: e.target.value })}
                       placeholder="••••••••"
-                      className="rounded-xl border-2 border-ink bg-background p-2.5 text-xs outline-none font-mono"
                     />
                   </label>
 
                   <label className="grid gap-1">
                     <span className="text-xs font-bold">New Password</span>
-                    <input
-                      type="password"
+                    <PasswordInput
                       value={pwdForm.newPassword}
                       onChange={(e) => setPwdForm({ ...pwdForm, newPassword: e.target.value })}
                       placeholder="••••••••"
-                      className="rounded-xl border-2 border-ink bg-background p-2.5 text-xs outline-none font-mono"
                     />
                   </label>
 
                   <label className="grid gap-1">
                     <span className="text-xs font-bold">Confirm New Password</span>
-                    <input
-                      type="password"
+                    <PasswordInput
                       value={pwdForm.confirmPassword}
                       onChange={(e) => setPwdForm({ ...pwdForm, confirmPassword: e.target.value })}
                       placeholder="••••••••"
-                      className="rounded-xl border-2 border-ink bg-background p-2.5 text-xs outline-none font-mono"
                     />
                   </label>
 

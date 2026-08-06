@@ -30,6 +30,38 @@ export function Reveal({
   );
 }
 
+/** Letter-by-letter reveal animation for key headings */
+export function LetterReveal({ text, className = "" }: { text: string; className?: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true });
+  const letters = text.split("");
+
+  return (
+    <span ref={ref} className={`inline-block ${className}`}>
+      {letters.map((char, i) => (
+        <motion.span
+          key={i}
+          className="inline-block"
+          initial={{ opacity: 0, y: 12, rotate: -3 }}
+          animate={inView ? { opacity: 1, y: 0, rotate: 0 } : {}}
+          transition={{ duration: 0.35, delay: i * 0.03, ease: "easeOut" }}
+        >
+          {char === " " ? "\u00A0" : char}
+        </motion.span>
+      ))}
+    </span>
+  );
+}
+
+/** Highlight text glow and underline animation */
+export function TextGlow({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return (
+    <span className={`relative inline-block text-ink font-bold underline decoration-coral decoration-wavy decoration-2 underline-offset-4 ${className}`}>
+      {children}
+    </span>
+  );
+}
+
 /** Button that leans toward the pointer and ripples on click. */
 export function MagneticButton({
   children,
