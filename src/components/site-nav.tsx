@@ -3,6 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Menu, X, Shield, BookOpen, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DoodleLogo } from "@/components/doodle-logo";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 
 const links = [
   { label: "Services", to: "/", hash: "services" },

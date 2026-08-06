@@ -1,5 +1,5 @@
 import { motion, useInView } from "motion/react";
-import { useRef, useState, type ReactNode, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type ReactNode, type MouseEvent } from "react";
 import { cn } from "@/lib/utils";
 import { DoodleBlobUnderline } from "@/components/doodles";
 
