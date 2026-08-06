@@ -71,6 +71,13 @@ import {
   syncAdminPasscodeFromSupabase,
   generateAndSendOTP,
   verifyOTP,
+  useCMSContent,
+  useProjectsCMS,
+  useBlogsCMS,
+  useServicesCMS,
+  useDeploymentsCMS,
+  useTechStackCMS,
+  useResumeCMS,
   type MasterCMSContent,
   type LeadEntry,
   type DeploymentPlatformCMS,
@@ -114,17 +121,34 @@ function AdminPage() {
     | "backup"
   >("analytics");
 
-  // State
-  const [cmsContent, setCmsContent] = useState<MasterCMSContent>(getCMSContent());
+  // Live Supabase / CMS Hooks
+  const liveCMSContent = useCMSContent();
+  const liveProjects = useProjectsCMS();
+  const liveBlogs = useBlogsCMS();
+  const liveServices = useServicesCMS();
+  const liveDeployments = useDeploymentsCMS();
+  const liveTechStack = useTechStackCMS();
+  const liveResume = useResumeCMS();
+
+  // State initialized with live Supabase data
+  const [cmsContent, setCmsContent] = useState<MasterCMSContent>(liveCMSContent);
   const [analyticsStats, setAnalyticsStats] = useState<RealAnalyticsStats>(getRealAnalyticsStats());
-  const [projects, setProjects] = useState<ShowcaseProject[]>(defaultProjects);
-  const [blogs, setBlogs] = useState<BlogPost[]>(fetchAllBlogs());
-  const [services, setServices] = useState<ServiceItem[]>(fetchAllServices());
-  const [deployments, setDeployments] = useState<DeploymentPlatformCMS[]>(getDeploymentsLocal());
-  const [techStack, setTechStack] = useState<TechGroupCMS[]>(getTechStackLocal());
-  const [resumeData, setResumeData] = useState<ResumeCMS>(getResumeLocal());
+  const [projects, setProjects] = useState<ShowcaseProject[]>(liveProjects);
+  const [blogs, setBlogs] = useState<BlogPost[]>(liveBlogs);
+  const [services, setServices] = useState<ServiceItem[]>(liveServices);
+  const [deployments, setDeployments] = useState<DeploymentPlatformCMS[]>(liveDeployments);
+  const [techStack, setTechStack] = useState<TechGroupCMS[]>(liveTechStack);
+  const [resumeData, setResumeData] = useState<ResumeCMS>(liveResume);
   const [leads, setLeads] = useState<LeadEntry[]>(fetchAllLeads());
   const [subscribers, setSubscribers] = useState(fetchAllSubscribers());
+
+  useEffect(() => { setCmsContent(liveCMSContent); }, [liveCMSContent]);
+  useEffect(() => { setProjects(liveProjects); }, [liveProjects]);
+  useEffect(() => { setBlogs(liveBlogs); }, [liveBlogs]);
+  useEffect(() => { setServices(liveServices); }, [liveServices]);
+  useEffect(() => { setDeployments(liveDeployments); }, [liveDeployments]);
+  useEffect(() => { setTechStack(liveTechStack); }, [liveTechStack]);
+  useEffect(() => { setResumeData(liveResume); }, [liveResume]);
 
   // Edit Modals / Forms State
   const [editingProject, setEditingProject] = useState<Partial<ShowcaseProject> | null>(null);
