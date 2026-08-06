@@ -163,3 +163,37 @@ export function Section({
     </section>
   );
 }
+
+/** Typewriter effect displaying text letter-by-letter with a blinking doodle cursor */
+export function TypewriterText({
+  text,
+  speed = 50,
+  className,
+}: {
+  text: string;
+  speed?: number;
+  className?: string;
+}) {
+  const [displayedText, setDisplayedText] = useState("");
+
+  useEffect(() => {
+    let index = 0;
+    setDisplayedText("");
+    const timer = setInterval(() => {
+      if (index < text.length) {
+        setDisplayedText((prev) => prev + text.charAt(index));
+        index++;
+      } else {
+        clearInterval(timer);
+      }
+    }, speed);
+    return () => clearInterval(timer);
+  }, [text, speed]);
+
+  return (
+    <span className={cn("inline-flex items-center", className)}>
+      {displayedText}
+      <span className="ml-1 inline-block h-[1em] w-0.5 animate-pulse bg-coral" />
+    </span>
+  );
+}

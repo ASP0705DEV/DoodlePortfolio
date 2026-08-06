@@ -33,18 +33,17 @@ export function Newsletter() {
       return;
     }
     setBusy(true);
-    const { error } = await supabase.from("newsletter_subscribers").insert({
-      email: parsed.data.email,
-      name: parsed.data.name || null,
-    });
+
+    const { linkVisitorEmail, track } = await import("@/lib/analytics");
+    const { addSubscriber } = await import("@/lib/cms-store");
+    const { sendSubscriberConfirmation } = await import("@/lib/email-service");
+
+    linkVisitorEmail(parsed.data.email);
+    await addSubscriber(parsed.data.email, parsed.data.name, "newsletter_section");
+    void sendSubscriberConfirmation({ email: parsed.data.email, name: parsed.data.name });
+
     setBusy(false);
-    if (error) {
-      toast.error(
-        error.code === "23505" ? "You're already on the list!" : "Could not subscribe, try again.",
-      );
-      return;
-    }
-    void track("newsletter_subscribe");
+    void track("newsletter_subscribe", { meta: { email: parsed.data.email } });
     setEmail("");
     setName("");
     toast.success("You're in! New projects and AI notes are heading your way.");
@@ -101,7 +100,6 @@ export function Contact() {
     return () => window.removeEventListener("collab-intent", onIntent);
   }, []);
 
-
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = contactSchema.safeParse(form);
@@ -110,8 +108,10 @@ export function Contact() {
       return;
     }
     setBusy(true);
-    const { linkVisitorEmail } = await import("@/lib/analytics");
+    const { linkVisitorEmail, track } = await import("@/lib/analytics");
     const { submitLead } = await import("@/lib/cms-store");
+    const { sendLeadNotification } = await import("@/lib/email-service");
+
     linkVisitorEmail(parsed.data.email);
 
     await submitLead({
@@ -122,8 +122,15 @@ export function Contact() {
       source: "contact_form",
     });
 
+    void sendLeadNotification({
+      name: parsed.data.name,
+      email: parsed.data.email,
+      subject: parsed.data.subject,
+      message: parsed.data.message,
+    });
+
     setBusy(false);
-    void track("contact_submit");
+    void track("contact_submit", { meta: { email: parsed.data.email, subject: parsed.data.subject } });
     setForm({ name: "", email: "", subject: "", message: "" });
     toast.success("Message sent! I'll get back to you soon.");
   };

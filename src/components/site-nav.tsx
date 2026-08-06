@@ -85,18 +85,19 @@ export function SiteNav() {
             <a
               key={l.hash}
               href={pathname === "/" ? `#${l.hash}` : `/#${l.hash}`}
+              onClick={() => setOpen(false)}
               className="rounded-xl px-3 py-2 text-sm font-semibold hover:bg-sun/40"
             >
               {l.label}
             </a>
           ))}
-          <Link to="/blog" className="rounded-xl bg-sun px-3 py-2 text-sm font-bold">
+          <Link to="/blog" onClick={() => setOpen(false)} className="rounded-xl bg-sun px-3 py-2 text-sm font-bold">
             Blog Articles
           </Link>
-          <Link to="/playground" className="rounded-xl bg-lime px-3 py-2 text-sm font-bold text-lime-foreground">
+          <Link to="/playground" onClick={() => setOpen(false)} className="rounded-xl bg-lime px-3 py-2 text-sm font-bold text-lime-foreground">
             Playground Games
           </Link>
-          <Link to="/docs" className="rounded-xl bg-bubble px-3 py-2 text-sm font-bold">
+          <Link to="/docs" onClick={() => setOpen(false)} className="rounded-xl bg-bubble px-3 py-2 text-sm font-bold">
             Documentation
           </Link>
         </div>

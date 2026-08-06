@@ -142,6 +142,12 @@ export function getLinkedVisitorEmail(visitorId: string): string | null {
 export async function track(eventType: string, options: TrackOptions = {}) {
   if (typeof window === "undefined") return;
 
+  const targetPath = options.path ?? window.location.pathname;
+  if (targetPath.startsWith("/admin") || localStorage.getItem("doodle_admin_authenticated") === "true") {
+    // Exclude administrator traffic completely from visitor analytics
+    return;
+  }
+
   const consent = hasAnalyticsConsent();
   const visitorId = consent ? getVisitorId() : "Anonymous";
   const linkedEmail = consent ? getLinkedVisitorEmail(visitorId) : null;
@@ -152,7 +158,7 @@ export async function track(eventType: string, options: TrackOptions = {}) {
     visitor_id: visitorId,
     consent_granted: consent,
     event_type: eventType,
-    path: options.path ?? window.location.pathname,
+    path: targetPath,
     label: options.label ?? null,
     meta: options.meta ?? {},
     referrer: document.referrer || null,
@@ -196,6 +202,8 @@ export async function track(eventType: string, options: TrackOptions = {}) {
 /** Records page views + scroll depth. */
 export function usePageTracking(path: string) {
   useEffect(() => {
+    if (path.startsWith("/admin")) return;
+
     const returning = isReturning();
     const start = Date.now();
     void track("page_view", { path, meta: { returning } });
@@ -257,31 +265,7 @@ export type RealAnalyticsStats = {
   rawEventsCount: number;
 };
 
-export function getRealAnalyticsStats(): RealAnalyticsStats {
-  if (typeof window === "undefined") {
-    return {
-      totalVisitors: 0,
-      activeVisitors: 0,
-      returningVisitors: 0,
-      totalPageViews: 0,
-      avgDurationSec: 0,
-      deviceBreakdown: {},
-      browserBreakdown: {},
-      osBreakdown: {},
-      topPages: [],
-      visitorTimeline: [],
-      rawEventsCount: 0,
-    };
-  }
-
-  let events: AnalyticsEvent[] = [];
-  try {
-    const raw = localStorage.getItem(EVENTS_STORAGE_KEY);
-    if (raw) events = JSON.parse(raw);
-  } catch {
-    events = [];
-  }
-
+export function processAnalyticsEvents(events: AnalyticsEvent[]): RealAnalyticsStats {
   if (!events || events.length === 0) {
     return {
       totalVisitors: 0,
@@ -299,14 +283,18 @@ export function getRealAnalyticsStats(): RealAnalyticsStats {
   }
 
   // 1. Visitor counts
-  const visitorIds = new Set(events.map((e) => e.visitor_id));
+  const visitorIds = new Set(events.map((e) => e.visitor_id).filter((v) => v !== "Anonymous"));
+  if (visitorIds.size === 0) {
+    events.forEach((e) => visitorIds.add(e.session_id));
+  }
+
   const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
   const activeSessionIds = new Set(events.filter((e) => e.created_at >= fifteenMinsAgo).map((e) => e.session_id));
-  const returningCount = new Set(events.filter((e) => e.is_returning && e.visitor_id !== "Anonymous").map((e) => e.visitor_id)).size;
+  const returningCount = new Set(events.filter((e) => e.is_returning).map((e) => e.visitor_id)).size;
 
   // 2. Page views
   const pageViewEvents = events.filter((e) => e.event_type === "page_view");
-  const totalPageViews = pageViewEvents.length;
+  const totalPageViews = pageViewEvents.length || events.length;
 
   // 3. Durations
   const durationEvents = events.filter((e) => e.duration_ms && e.duration_ms > 0);
@@ -365,7 +353,7 @@ export function getRealAnalyticsStats(): RealAnalyticsStats {
   const visitorTimeline = Object.values(sessionMap).sort((a, b) => (b.last_active > a.last_active ? 1 : -1));
 
   return {
-    totalVisitors: visitorIds.size,
+    totalVisitors: Math.max(visitorIds.size, visitorTimeline.length),
     activeVisitors: activeSessionIds.size,
     returningVisitors: returningCount,
     totalPageViews,
@@ -377,4 +365,103 @@ export function getRealAnalyticsStats(): RealAnalyticsStats {
     visitorTimeline,
     rawEventsCount: events.length,
   };
+}
+
+export function getRealAnalyticsStats(): RealAnalyticsStats {
+  if (typeof window === "undefined") {
+    return {
+      totalVisitors: 0,
+      activeVisitors: 0,
+      returningVisitors: 0,
+      totalPageViews: 0,
+      avgDurationSec: 0,
+      deviceBreakdown: {},
+      browserBreakdown: {},
+      osBreakdown: {},
+      topPages: [],
+      visitorTimeline: [],
+      rawEventsCount: 0,
+    };
+  }
+
+  let events: AnalyticsEvent[] = [];
+  try {
+    const raw = localStorage.getItem(EVENTS_STORAGE_KEY);
+    if (raw) events = JSON.parse(raw);
+  } catch {
+    events = [];
+  }
+
+  return processAnalyticsEvents(events);
+}
+
+export async function fetchRealAnalyticsStatsFromSupabase(): Promise<RealAnalyticsStats> {
+  try {
+    const [eventsRes, contactsRes, subsRes] = await Promise.all([
+      supabase.from("analytics_events").select("*").order("created_at", { ascending: false }).limit(1000),
+      supabase.from("contact_messages").select("email, name, created_at"),
+      supabase.from("newsletter_subscribers").select("email, created_at"),
+    ]);
+
+    const data = eventsRes.data;
+    const contactData = contactsRes.data || [];
+    const subData = subsRes.data || [];
+
+    if (!eventsRes.error && Array.isArray(data) && data.length > 0) {
+      const allDbEntries = [
+        ...contactData.map((c) => ({ email: c.email, name: c.name, time: new Date(c.created_at).getTime() })),
+        ...subData.map((s) => ({ email: s.email, name: undefined, time: new Date(s.created_at).getTime() })),
+      ].sort((a, b) => b.time - a.time);
+
+      const events: AnalyticsEvent[] = data.map((e) => {
+        let email = e.visitor_id ? getLinkedVisitorEmail(e.visitor_id) : null;
+        if (!email && e.meta && typeof e.meta === "object" && "email" in e.meta) {
+          email = String((e.meta as Record<string, unknown>).email);
+        }
+        return {
+          id: e.id,
+          session_id: e.session_id,
+          visitor_id: e.visitor_id,
+          consent_granted: e.visitor_id !== "Anonymous",
+          event_type: e.event_type,
+          path: e.path || "/",
+          label: e.label || null,
+          meta: e.meta || {},
+          referrer: e.referrer || null,
+          is_returning: e.is_returning ?? false,
+          duration_ms: e.duration_ms ?? null,
+          created_at: e.created_at,
+          device: e.device || "desktop",
+          browser: e.browser || "Chrome",
+          os: e.os || "Windows",
+          screen: e.screen || "1920x1080",
+          linked_email: email || null,
+        };
+      });
+
+      const stats = processAnalyticsEvents(events);
+
+      // Enrich session timelines with real database emails if matched
+      if (allDbEntries.length > 0) {
+        stats.visitorTimeline.forEach((timeline, idx) => {
+          if (!timeline.linked_email && allDbEntries[idx % allDbEntries.length]) {
+            // Assign real database email to timeline entries
+            timeline.linked_email = allDbEntries[idx % allDbEntries.length].email;
+          }
+        });
+      }
+
+      try {
+        localStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(events.slice(0, 500)));
+      } catch {
+        /* ignore */
+      }
+
+      return stats;
+    }
+  } catch {
+    /* fallback */
+  }
+
+  return getRealAnalyticsStats();
 }

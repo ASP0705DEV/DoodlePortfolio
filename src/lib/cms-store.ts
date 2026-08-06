@@ -1090,12 +1090,15 @@ export function useBlogsCMS(): BlogPost[] {
             id: b.id,
             slug: b.slug,
             title: b.title,
-            excerpt: b.excerpt,
-            content: b.content,
-            category: b.category,
-            readTime: b.read_time || "5 min read",
-            date: b.created_at ? new Date(b.created_at).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
-            coverImage: b.cover_image || undefined,
+            summary: b.summary || b.excerpt || "",
+            content: b.content || "",
+            category: (b.category as BlogPost["category"]) || "AI & Agents",
+            author: b.author || "Adapa Sai Prithvi",
+            date: b.date || (b.created_at ? new Date(b.created_at).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)),
+            readTime: b.read_time || b.readTime || "5 min read",
+            featuredImage: b.cover_image || b.featuredImage || "https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=800&q=80",
+            published: b.published !== false,
+            tags: b.tags && Array.isArray(b.tags) && b.tags.length > 0 ? b.tags : ["Engineering", "AI"],
           }));
           setLocal(STORAGE_KEYS.BLOGS, mapped);
           setBlogs(mapped);
@@ -1136,17 +1139,24 @@ export async function saveBlogLocal(blog: BlogPost): Promise<BlogPost[]> {
     updated = [blog, ...current];
   }
   setLocal(STORAGE_KEYS.BLOGS, updated);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("cms-updated"));
+  }
 
   try {
     await supabase.from("blog_posts").upsert({
       id: blog.id,
       slug: blog.slug,
       title: blog.title,
-      excerpt: blog.excerpt,
+      excerpt: blog.summary || "",
       content: blog.content,
       category: blog.category,
+      author: blog.author || "Adapa Sai Prithvi",
       read_time: blog.readTime,
-      cover_image: blog.coverImage || null,
+      cover_image: blog.featuredImage || null,
+      published: blog.published !== false,
+      tags: blog.tags || [],
+      date: blog.date,
     } as never);
   } catch (err) {
     console.warn("Supabase blog save note:", err);
@@ -1167,6 +1177,9 @@ export async function deleteBlogLocal(id: string): Promise<BlogPost[]> {
   const current = getLocal<BlogPost[]>(STORAGE_KEYS.BLOGS, defaultBlogPosts);
   const updated = current.filter((b) => b.id !== id);
   setLocal(STORAGE_KEYS.BLOGS, updated);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("cms-updated"));
+  }
 
   try {
     await supabase.from("blog_posts").delete().eq("id", id);
@@ -1194,6 +1207,32 @@ export function useDeploymentsCMS(): DeploymentPlatformCMS[] {
   );
 
   useEffect(() => {
+    const syncDeployments = async () => {
+      try {
+        const { data, error } = await supabase.from("deployments").select("*").order("created_at", { ascending: true });
+        if (!error && data && data.length > 0) {
+          const mapped: DeploymentPlatformCMS[] = data.map((d: any) => ({
+            id: d.id,
+            name: d.name,
+            category: d.category || "Cloud Hosting",
+            status: d.status || "Healthy",
+            badgeColor: d.badge_color || "bg-mint text-ink",
+            iconName: d.icon_name || "Globe2",
+            iconUrl: d.icon_url || undefined,
+            description: d.description || "",
+            hostedBuilds: (d.hosted_builds as any) || [],
+            link: d.link || undefined,
+          }));
+          setLocal(STORAGE_KEYS.DEPLOYMENTS, mapped);
+          setDeployments(mapped);
+        }
+      } catch {
+        /* fallback to local storage */
+      }
+    };
+
+    void syncDeployments();
+
     const handleStorage = () => {
       setDeployments(getLocal<DeploymentPlatformCMS[]>(STORAGE_KEYS.DEPLOYMENTS, defaultDeploymentsCMS));
     };
@@ -1212,7 +1251,7 @@ export function getDeploymentsLocal(): DeploymentPlatformCMS[] {
   return getLocal<DeploymentPlatformCMS[]>(STORAGE_KEYS.DEPLOYMENTS, defaultDeploymentsCMS);
 }
 
-export function saveDeploymentLocal(dep: DeploymentPlatformCMS): DeploymentPlatformCMS[] {
+export async function saveDeploymentLocal(dep: DeploymentPlatformCMS): Promise<DeploymentPlatformCMS[]> {
   const current = getDeploymentsLocal();
   const idx = current.findIndex((d) => d.id === dep.id);
   let updated: DeploymentPlatformCMS[];
@@ -1223,13 +1262,61 @@ export function saveDeploymentLocal(dep: DeploymentPlatformCMS): DeploymentPlatf
     updated = [...current, dep];
   }
   setLocal(STORAGE_KEYS.DEPLOYMENTS, updated);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("cms-updated"));
+  }
+
+  try {
+    await supabase.from("deployments").upsert({
+      id: dep.id,
+      name: dep.name,
+      category: dep.category,
+      status: dep.status,
+      badge_color: dep.badgeColor,
+      icon_name: dep.iconName,
+      icon_url: dep.iconUrl || null,
+      description: dep.description,
+      hosted_builds: dep.hostedBuilds as never,
+      link: dep.link || null,
+      updated_at: new Date().toISOString(),
+    } as never);
+  } catch (err) {
+    console.warn("Supabase deployment save note:", err);
+  }
+
+  try {
+    const cms = getCMSContent();
+    cms.deployments = updated;
+    await saveCMSContent(cms);
+  } catch (err) {
+    console.warn("CMS content sync note:", err);
+  }
+
   return updated;
 }
 
-export function deleteDeploymentLocal(id: string): DeploymentPlatformCMS[] {
+export async function deleteDeploymentLocal(id: string): Promise<DeploymentPlatformCMS[]> {
   const current = getDeploymentsLocal();
   const updated = current.filter((d) => d.id !== id);
   setLocal(STORAGE_KEYS.DEPLOYMENTS, updated);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("cms-updated"));
+  }
+
+  try {
+    await supabase.from("deployments").delete().eq("id", id);
+  } catch (err) {
+    console.warn("Supabase deployment delete note:", err);
+  }
+
+  try {
+    const cms = getCMSContent();
+    cms.deployments = updated;
+    await saveCMSContent(cms);
+  } catch (err) {
+    console.warn("CMS content sync note:", err);
+  }
+
   return updated;
 }
 
@@ -1298,8 +1385,93 @@ export function saveResumeLocal(resume: ResumeCMS): ResumeCMS {
 }
 
 // -------------------------------------------------------------
-// Lead CRM API & Newsletter API
+// Lead CRM API & Newsletter API & Hooks
 // -------------------------------------------------------------
+export function useLeadsCMS(): LeadEntry[] {
+  const [leads, setLeads] = useState<LeadEntry[]>(() => fetchAllLeads());
+
+  useEffect(() => {
+    const syncLeads = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("contact_messages")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (!error && Array.isArray(data) && data.length > 0) {
+          const mapped: LeadEntry[] = data.map((m) => ({
+            id: m.id,
+            name: m.name,
+            email: m.email,
+            subject: m.subject || "Contact Message",
+            message: m.message,
+            status: m.is_read ? "read" : "new",
+            created_at: m.created_at,
+            source: "contact_form",
+          }));
+          setLocal(STORAGE_KEYS.LEADS, mapped);
+          setLeads(mapped);
+        }
+      } catch {
+        /* fallback */
+      }
+    };
+
+    void syncLeads();
+
+    const handleStorage = () => setLeads(fetchAllLeads());
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("cms-updated", handleStorage);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("cms-updated", handleStorage);
+    };
+  }, []);
+
+  return leads;
+}
+
+export function useSubscribersCMS(): SubscriberEntry[] {
+  const [subscribers, setSubscribers] = useState<SubscriberEntry[]>(() => fetchAllSubscribers());
+
+  useEffect(() => {
+    const syncSubscribers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("newsletter_subscribers")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (!error && Array.isArray(data) && data.length > 0) {
+          const mapped: SubscriberEntry[] = data.map((s) => ({
+            id: s.id,
+            email: s.email,
+            name: s.name || undefined,
+            source: s.source || "website",
+            created_at: s.created_at,
+          }));
+          setLocal(STORAGE_KEYS.SUBSCRIBERS, mapped);
+          setSubscribers(mapped);
+        }
+      } catch {
+        /* fallback */
+      }
+    };
+
+    void syncSubscribers();
+
+    const handleStorage = () => setSubscribers(fetchAllSubscribers());
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("cms-updated", handleStorage);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("cms-updated", handleStorage);
+    };
+  }, []);
+
+  return subscribers;
+}
+
 export async function submitLead(lead: Omit<LeadEntry, "id" | "created_at" | "status">): Promise<LeadEntry> {
   const newLead: LeadEntry = {
     ...lead,
@@ -1316,12 +1488,15 @@ export async function submitLead(lead: Omit<LeadEntry, "id" | "created_at" | "st
       message: lead.message,
       is_read: false,
     });
-  } catch {
-    /* ignore */
+  } catch (err) {
+    console.warn("Supabase lead insert note:", err);
   }
 
   const current = getLocal<LeadEntry[]>(STORAGE_KEYS.LEADS, []);
   setLocal(STORAGE_KEYS.LEADS, [newLead, ...current]);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("cms-updated"));
+  }
   return newLead;
 }
 
@@ -1333,6 +1508,9 @@ export function updateLeadStatus(id: string, status: LeadEntry["status"]): LeadE
   const current = fetchAllLeads();
   const updated = current.map((l) => (l.id === id ? { ...l, status } : l));
   setLocal(STORAGE_KEYS.LEADS, updated);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("cms-updated"));
+  }
   return updated;
 }
 
@@ -1343,8 +1521,8 @@ export async function addSubscriber(email: string, name?: string, source: string
       name: name || null,
       source,
     });
-  } catch {
-    /* ignore */
+  } catch (err) {
+    console.warn("Supabase subscriber insert note:", err);
   }
 
   const current = getLocal<SubscriberEntry[]>(STORAGE_KEYS.SUBSCRIBERS, []);
@@ -1357,6 +1535,9 @@ export async function addSubscriber(email: string, name?: string, source: string
       created_at: new Date().toISOString(),
     };
     setLocal(STORAGE_KEYS.SUBSCRIBERS, [entry, ...current]);
+  }
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("cms-updated"));
   }
   return true;
 }
