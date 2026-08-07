@@ -243,7 +243,7 @@ function AdminPage() {
   // OTP Password Reset State
   const [showPwdModal, setShowPwdModal] = useState(false);
   const [pwdStep, setPwdStep] = useState<1 | 2>(1);
-  const [adminEmailInput, setAdminEmailInput] = useState(() => getAdminEmail() || "Saiprithvi0705@gmail.com");
+  const [adminEmailInput, setAdminEmailInput] = useState("Saiprithvi0705@gmail.com");
   const [otpInput, setOtpInput] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -251,6 +251,7 @@ function AdminPage() {
   const [pwdStatus, setPwdStatus] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
   useEffect(() => {
+    setAdminEmailInput(getAdminEmail() || "Saiprithvi0705@gmail.com");
     void syncAdminPasscodeFromSupabase();
   }, []);
 

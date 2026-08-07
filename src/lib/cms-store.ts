@@ -872,9 +872,12 @@ export async function saveCMSContent(content: MasterCMSContent): Promise<MasterC
 }
 
 export function useCMSContent(): MasterCMSContent {
-  const [content, setContent] = useState<MasterCMSContent>(() => getCMSContent());
+  const [content, setContent] = useState<MasterCMSContent>(defaultCMSContent);
 
   useEffect(() => {
+    // Sync local storage state after SSR hydration completes
+    setContent(getCMSContent());
+
     const syncRemote = async () => {
       try {
         const { data, error } = await supabase
@@ -912,11 +915,11 @@ export function useCMSContent(): MasterCMSContent {
 // Projects API & Hook (Reads & Writes to Supabase Table)
 // -------------------------------------------------------------
 export function useProjectsCMS(): ShowcaseProject[] {
-  const [projects, setProjects] = useState<ShowcaseProject[]>(() =>
-    getLocal<ShowcaseProject[]>(STORAGE_KEYS.PROJECTS, defaultProjects)
-  );
+  const [projects, setProjects] = useState<ShowcaseProject[]>(defaultProjects);
 
   useEffect(() => {
+    setProjects(getLocal<ShowcaseProject[]>(STORAGE_KEYS.PROJECTS, defaultProjects));
+
     const syncProjects = async () => {
       try {
         const { data, error } = await supabase.from("projects").select("*").order("created_at", { ascending: false });
@@ -1045,11 +1048,11 @@ export async function deleteProjectLocal(id: string): Promise<ShowcaseProject[]>
 // Services API & Hook (Reads & Writes to Supabase Table)
 // -------------------------------------------------------------
 export function useServicesCMS(): ServiceItem[] {
-  const [services, setServices] = useState<ServiceItem[]>(() =>
-    getLocal<ServiceItem[]>(STORAGE_KEYS.SERVICES, defaultServices)
-  );
+  const [services, setServices] = useState<ServiceItem[]>(defaultServices);
 
   useEffect(() => {
+    setServices(getLocal<ServiceItem[]>(STORAGE_KEYS.SERVICES, defaultServices));
+
     const syncServices = async () => {
       try {
         const { data, error } = await supabase.from("services").select("*");
@@ -1158,11 +1161,11 @@ export async function deleteServiceLocal(id: string): Promise<ServiceItem[]> {
 // Blogs API & Hook (Reads & Writes to Supabase Table)
 // -------------------------------------------------------------
 export function useBlogsCMS(): BlogPost[] {
-  const [blogs, setBlogs] = useState<BlogPost[]>(() =>
-    getLocal<BlogPost[]>(STORAGE_KEYS.BLOGS, defaultBlogPosts)
-  );
+  const [blogs, setBlogs] = useState<BlogPost[]>(defaultBlogPosts);
 
   useEffect(() => {
+    setBlogs(getLocal<BlogPost[]>(STORAGE_KEYS.BLOGS, defaultBlogPosts));
+
     const syncBlogs = async () => {
       try {
         const { data, error } = await supabase.from("blog_posts").select("*").order("created_at", { ascending: false });
@@ -1283,11 +1286,11 @@ export async function deleteBlogLocal(id: string): Promise<BlogPost[]> {
 // Deployments API & Hook
 // -------------------------------------------------------------
 export function useDeploymentsCMS(): DeploymentPlatformCMS[] {
-  const [deployments, setDeployments] = useState<DeploymentPlatformCMS[]>(() =>
-    getLocal<DeploymentPlatformCMS[]>(STORAGE_KEYS.DEPLOYMENTS, defaultDeploymentsCMS)
-  );
+  const [deployments, setDeployments] = useState<DeploymentPlatformCMS[]>(defaultDeploymentsCMS);
 
   useEffect(() => {
+    setDeployments(getLocal<DeploymentPlatformCMS[]>(STORAGE_KEYS.DEPLOYMENTS, defaultDeploymentsCMS));
+
     const syncDeployments = async () => {
       try {
         const { data, error } = await supabase.from("deployments").select("*").order("created_at", { ascending: true });
@@ -1405,11 +1408,11 @@ export async function deleteDeploymentLocal(id: string): Promise<DeploymentPlatf
 // Tech Stack API & Hook
 // -------------------------------------------------------------
 export function useTechStackCMS(): TechGroupCMS[] {
-  const [techStack, setTechStack] = useState<TechGroupCMS[]>(() =>
-    getLocal<TechGroupCMS[]>(STORAGE_KEYS.TECH_STACK, defaultTechStackCMS)
-  );
+  const [techStack, setTechStack] = useState<TechGroupCMS[]>(defaultTechStackCMS);
 
   useEffect(() => {
+    setTechStack(getLocal<TechGroupCMS[]>(STORAGE_KEYS.TECH_STACK, defaultTechStackCMS));
+
     const handleStorage = () => {
       setTechStack(getLocal<TechGroupCMS[]>(STORAGE_KEYS.TECH_STACK, defaultTechStackCMS));
     };
@@ -1437,11 +1440,11 @@ export function saveTechStackLocal(stack: TechGroupCMS[]): TechGroupCMS[] {
 // Resume API & Hook
 // -------------------------------------------------------------
 export function useResumeCMS(): ResumeCMS {
-  const [resume, setResume] = useState<ResumeCMS>(() =>
-    getLocal<ResumeCMS>(STORAGE_KEYS.RESUME, defaultResumeCMS)
-  );
+  const [resume, setResume] = useState<ResumeCMS>(defaultResumeCMS);
 
   useEffect(() => {
+    setResume(getLocal<ResumeCMS>(STORAGE_KEYS.RESUME, defaultResumeCMS));
+
     const handleStorage = () => {
       setResume(getLocal<ResumeCMS>(STORAGE_KEYS.RESUME, defaultResumeCMS));
     };
@@ -1469,9 +1472,11 @@ export function saveResumeLocal(resume: ResumeCMS): ResumeCMS {
 // Lead CRM API & Newsletter API & Hooks
 // -------------------------------------------------------------
 export function useLeadsCMS(): LeadEntry[] {
-  const [leads, setLeads] = useState<LeadEntry[]>(() => fetchAllLeads());
+  const [leads, setLeads] = useState<LeadEntry[]>([]);
 
   useEffect(() => {
+    setLeads(fetchAllLeads());
+
     const syncLeads = async () => {
       try {
         const { data, error } = await supabase
@@ -1513,9 +1518,11 @@ export function useLeadsCMS(): LeadEntry[] {
 }
 
 export function useSubscribersCMS(): SubscriberEntry[] {
-  const [subscribers, setSubscribers] = useState<SubscriberEntry[]>(() => fetchAllSubscribers());
+  const [subscribers, setSubscribers] = useState<SubscriberEntry[]>([]);
 
   useEffect(() => {
+    setSubscribers(fetchAllSubscribers());
+
     const syncSubscribers = async () => {
       try {
         const { data, error } = await supabase
