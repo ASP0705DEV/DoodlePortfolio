@@ -36,6 +36,7 @@ import {
   Send,
   X,
   User,
+  Menu,
 } from "lucide-react";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
@@ -238,7 +239,8 @@ function AdminPage() {
   const [editingCertification, setEditingCertification] = useState<{ id?: string; name: string; issuer: string; year: string; url?: string } | null>(null);
   const [editingAchievement, setEditingAchievement] = useState<{ id?: string; title: string; copy: string } | null>(null);
   const [editingCapability, setEditingCapability] = useState<{ id?: string; title: string; level: number; category: string } | null>(null);
-
+  // Mobile Navigation Sheet State
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // OTP Password Reset State
   const [showPwdModal, setShowPwdModal] = useState(false);
@@ -821,39 +823,45 @@ function AdminPage() {
           <div className="grid gap-8 lg:grid-cols-[260px_1fr] lg:items-start">
             {/* ── LEFT SIDE NAVIGATION PANEL ────────────────────────────── */}
             <aside className="lg:sticky lg:top-28 space-y-4">
-              {/* Responsive Navigation Bar on Mobile & Tablet / iPad */}
-              <div className="lg:hidden sticky top-20 z-30 bg-background/95 backdrop-blur-md pt-2 pb-3 border-b-2 border-ink space-y-2">
-                <div className="flex items-center justify-between px-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Admin Section</span>
-                  <select
-                    value={activeTab}
-                    onChange={(e) => setActiveTab(e.target.value as typeof activeTab)}
-                    className="rounded-lg border-2 border-ink bg-card px-2.5 py-1 text-xs font-bold shadow-xs outline-none cursor-pointer"
+              {/* Mobile & Tablet Navigation Header Sheet (Visible on sm/md/lg < 1024px) */}
+              <div className="lg:hidden sticky top-20 z-30 bg-background/95 backdrop-blur-md p-3 border-2 border-ink rounded-2xl doodle-shadow-sm space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="sticker bg-ink text-background font-mono text-[11px] uppercase font-bold">
+                      Section
+                    </span>
+                    <span className="font-display font-bold text-sm text-foreground">
+                      {[
+                        { id: "analytics", label: "📊 Analytics Dashboard" },
+                        { id: "timeline", label: "👁️ Visitor Timeline" },
+                        { id: "account", label: "👤 Account & Profile" },
+                        { id: "content", label: "🦸 Hero & About CMS" },
+                        { id: "projects", label: `🚀 Projects (${projects.length})` },
+                        { id: "services", label: `🛠️ Services (${services.length})` },
+                        { id: "techstack", label: "💻 Tech Stack Matrix" },
+                        { id: "deployments", label: `☁️ Deployments (${deployments.length})` },
+                        { id: "resume", label: "📄 Resume & Career" },
+                        { id: "company", label: "🏢 Studio CMS" },
+                        { id: "blogs", label: `📝 Blogs (${blogs.length})` },
+                        { id: "leads", label: `📬 Lead CRM (${leads.length})` },
+                        { id: "security", label: "🔑 Security & Passcode" },
+                        { id: "backup", label: "💾 Backup & Restore" },
+                      ].find((s) => s.id === activeTab)?.label || "CMS Control Panel"}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setMobileNavOpen((o) => !o)}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-ink bg-sun px-3 py-2 text-xs font-bold doodle-shadow-sm touch-manipulation min-h-[44px]"
                   >
-                    {[
-                      { id: "analytics", label: "📊 Analytics" },
-                      { id: "timeline", label: "👁️ Timeline" },
-                      { id: "account", label: "👤 Account" },
-                      { id: "content", label: "🦸 Content" },
-                      { id: "projects", label: `🚀 Projects (${projects.length})` },
-                      { id: "services", label: `🛠️ Services (${services.length})` },
-                      { id: "techstack", label: "💻 Tech Stack" },
-                      { id: "deployments", label: `☁️ Deployments (${deployments.length})` },
-                      { id: "resume", label: "📄 Resume" },
-                      { id: "company", label: "🏢 Studio" },
-                      { id: "blogs", label: `📝 Blogs (${blogs.length})` },
-                      { id: "leads", label: `📬 CRM (${leads.length})` },
-                      { id: "security", label: "🔑 Security" },
-                      { id: "backup", label: "💾 Backup" },
-                    ].map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.label}
-                      </option>
-                    ))}
-                  </select>
+                    {mobileNavOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+                    <span>{mobileNavOpen ? "Close Menu" : "All Sections"}</span>
+                  </button>
                 </div>
 
-                <div className="flex overflow-x-auto gap-2 pb-1 pt-1 no-scrollbar touch-manipulation">
+                {/* Horizontal Scroll Ribbon */}
+                <div className="flex overflow-x-auto gap-2 pt-1 pb-1 scrollbar-none touch-manipulation">
                   {[
                     { id: "analytics", label: "Analytics", icon: BarChart3 },
                     { id: "timeline", label: "Timeline", icon: UserCheck },
@@ -873,16 +881,71 @@ function AdminPage() {
                     <button
                       key={tab.id}
                       type="button"
-                      onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                      className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl border-2 border-ink px-3 py-1.5 text-xs font-bold transition-all touch-manipulation ${
-                        activeTab === tab.id ? "bg-ink text-background scale-105 doodle-shadow-sm" : "bg-card text-foreground hover:bg-muted/40"
+                      onClick={() => {
+                        setActiveTab(tab.id as typeof activeTab);
+                        setMobileNavOpen(false);
+                      }}
+                      className={`inline-flex shrink-0 items-center gap-2 rounded-xl border-2 border-ink px-3.5 py-2 text-xs font-bold transition-all touch-manipulation min-h-[40px] ${
+                        activeTab === tab.id
+                          ? "bg-ink text-background scale-105 doodle-shadow-sm"
+                          : "bg-card text-foreground hover:bg-muted/40"
                       }`}
                     >
-                      <tab.icon className="h-3.5 w-3.5" />
-                      {tab.label}
+                      <tab.icon className="h-4 w-4" />
+                      <span>{tab.label}</span>
                     </button>
                   ))}
                 </div>
+
+                {/* Collapsible Mobile Navigation Sheet Drawer */}
+                {mobileNavOpen && (
+                  <div className="pt-2 border-t-2 border-ink/15 grid gap-2 sm:grid-cols-2 text-xs">
+                    {[
+                      { id: "analytics", label: "Analytics Dashboard", icon: BarChart3 },
+                      { id: "timeline", label: "Visitor Timeline", icon: UserCheck },
+                      { id: "account", label: "Account & Profile", icon: User },
+                      { id: "content", label: "Hero & About CMS", icon: Sliders },
+                      { id: "projects", label: "Projects & Case Studies", count: projects.length, icon: FolderPlus },
+                      { id: "services", label: "Technical Services", count: services.length, icon: Globe },
+                      { id: "techstack", label: "Tech Stack Matrix", icon: Code },
+                      { id: "deployments", label: "Deployments & Infra", count: deployments.length, icon: Server },
+                      { id: "resume", label: "Resume & Career (6 Subsections)", icon: Briefcase },
+                      { id: "company", label: "ASP0705DEV Studio", icon: Building2 },
+                      { id: "blogs", label: "Blog Articles", count: blogs.length, icon: FileText },
+                      { id: "leads", label: "Lead CRM Inbox", count: leads.length, icon: Users },
+                      { id: "security", label: "Security & Passcode", icon: KeyRound },
+                      { id: "backup", label: "Backup & Restore", icon: Download },
+                    ].map((tab) => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => {
+                          setActiveTab(tab.id as typeof activeTab);
+                          setMobileNavOpen(false);
+                        }}
+                        className={`flex items-center justify-between rounded-xl border-2 p-3 text-xs font-bold transition-all touch-manipulation min-h-[44px] ${
+                          activeTab === tab.id
+                            ? "border-ink bg-ink text-background doodle-shadow-sm"
+                            : "border-ink/30 bg-card text-foreground hover:bg-muted"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <tab.icon className="h-4 w-4 shrink-0" />
+                          <span>{tab.label}</span>
+                        </div>
+                        {tab.count !== undefined ? (
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                              activeTab === tab.id ? "bg-card text-ink" : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {tab.count}
+                          </span>
+                        ) : null}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Desktop Side Panel Navigation (Visible on lg+) */}
@@ -1201,8 +1264,56 @@ function AdminPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* Desktop & Tablet Full-Width Responsive Table */}
-                  <div className="w-full overflow-x-auto rounded-xl border-2 border-ink">
+                  {/* Mobile Adaptive Cards (Visible on screens < 768px) */}
+                  <div className="md:hidden space-y-3">
+                    {paginatedTimeline.map((sess) => (
+                      <div key={sess.session_id} className="border-2 border-ink bg-card p-4 rounded-xl doodle-shadow-sm space-y-3 text-xs">
+                        <div className="flex items-start justify-between gap-2 border-b border-ink/15 pb-2">
+                          <div>
+                            {sess.linked_email ? (
+                              <div className="font-bold text-coral flex items-center gap-1 break-all">
+                                <Mail className="h-3.5 w-3.5 shrink-0" />
+                                {sess.linked_email}
+                              </div>
+                            ) : (
+                              <div className="font-bold font-mono text-muted-foreground flex items-center gap-1">
+                                <User className="h-3.5 w-3.5 shrink-0" />
+                                {sess.consent_granted ? `Visitor (${sess.visitor_id.slice(0, 10)})` : "Anonymous Visitor"}
+                              </div>
+                            )}
+                            <div className="text-[10px] font-mono text-muted-foreground mt-0.5">
+                              Session: {sess.session_id.slice(0, 12)}…
+                            </div>
+                          </div>
+                          <span className={`sticker font-bold text-[10px] ${sess.consent_granted ? "bg-mint" : "bg-muted"}`}>
+                            {sess.consent_granted ? "Consent" : "Anon"}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-[11px]">
+                          <div>
+                            <span className="font-bold text-foreground block">{sess.device.toUpperCase()}</span>
+                            <span className="text-muted-foreground">{sess.browser} ({sess.os})</span>
+                          </div>
+                          <div className="text-right font-mono">
+                            <span className="font-bold text-ink block">{sess.actions_count} events</span>
+                            <span className="text-muted-foreground">{new Date(sess.last_active).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1 pt-1 border-t border-ink/10">
+                          {sess.pages_visited.map((p) => (
+                            <span key={p} className="rounded-md border border-ink/40 px-2 py-0.5 text-[10px] font-mono font-bold bg-background">
+                              {p}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop & Tablet Table (Visible on screens >= 768px) */}
+                  <div className="hidden md:block w-full overflow-x-auto rounded-xl border-2 border-ink">
                     <table className="w-full text-left text-xs border-collapse min-w-[640px]">
                       <thead>
                         <tr className="border-b-2 border-ink bg-muted/60 text-ink">
@@ -1529,40 +1640,61 @@ function AdminPage() {
                   Audit log tracking administrator login attempts, device signatures, and access timestamps.
                 </p>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs font-mono">
-                    <thead>
-                      <tr className="border-b-2 border-ink bg-muted/40 font-bold uppercase">
-                        <th className="p-3">User Email</th>
-                        <th className="p-3">Status</th>
-                        <th className="p-3">Logged At</th>
-                        <th className="p-3">User Agent</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {auditLogs.length === 0 ? (
-                        <tr>
-                          <td colSpan={4} className="p-4 text-center text-muted-foreground italic font-sans">
-                            No login audit entries recorded yet.
-                          </td>
-                        </tr>
-                      ) : (
-                        auditLogs.slice(0, 10).map((log) => (
-                          <tr key={log.id} className="border-b border-ink/15 hover:bg-muted/20">
-                            <td className="p-3 font-bold">{log.user_email}</td>
-                            <td className="p-3">
-                              <span className={`sticker font-bold text-[10px] ${log.status === "success" ? "bg-mint" : "bg-coral text-coral-foreground"}`}>
-                                {log.status.toUpperCase()}
-                              </span>
-                            </td>
-                            <td className="p-3">{new Date(log.logged_at).toLocaleString()}</td>
-                            <td className="p-3 max-w-xs truncate text-[10px] text-muted-foreground">{log.user_agent}</td>
+                {auditLogs.length === 0 ? (
+                  <div className="text-center py-8 text-xs text-muted-foreground italic border-2 border-dashed border-ink/30 rounded-xl">
+                    No login audit entries recorded yet.
+                  </div>
+                ) : (
+                  <>
+                    {/* Mobile Audit Cards (< 768px) */}
+                    <div className="md:hidden space-y-3">
+                      {auditLogs.slice(0, 10).map((log) => (
+                        <div key={log.id} className="border-2 border-ink bg-card p-3.5 rounded-xl doodle-shadow-sm space-y-2 text-xs font-mono">
+                          <div className="flex items-center justify-between border-b border-ink/15 pb-2">
+                            <span className="font-bold text-foreground text-xs break-all">{log.user_email}</span>
+                            <span className={`sticker font-bold text-[10px] ${log.status === "success" ? "bg-mint" : "bg-coral text-coral-foreground"}`}>
+                              {log.status.toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-muted-foreground">
+                            Logged: {new Date(log.logged_at).toLocaleString()}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground/80 truncate">
+                            {log.user_agent}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Desktop & Tablet Audit Table (>= 768px) */}
+                    <div className="hidden md:block overflow-x-auto rounded-xl border-2 border-ink">
+                      <table className="w-full text-left text-xs font-mono">
+                        <thead>
+                          <tr className="border-b-2 border-ink bg-muted/40 font-bold uppercase">
+                            <th className="p-3">User Email</th>
+                            <th className="p-3">Status</th>
+                            <th className="p-3">Logged At</th>
+                            <th className="p-3">User Agent</th>
                           </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                        </thead>
+                        <tbody>
+                          {auditLogs.slice(0, 10).map((log) => (
+                            <tr key={log.id} className="border-b border-ink/15 hover:bg-muted/20">
+                              <td className="p-3 font-bold">{log.user_email}</td>
+                              <td className="p-3">
+                                <span className={`sticker font-bold text-[10px] ${log.status === "success" ? "bg-mint" : "bg-coral text-coral-foreground"}`}>
+                                  {log.status.toUpperCase()}
+                                </span>
+                              </td>
+                              <td className="p-3">{new Date(log.logged_at).toLocaleString()}</td>
+                              <td className="p-3 max-w-xs truncate text-[10px] text-muted-foreground">{log.user_agent}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           ) : null}
@@ -2792,27 +2924,83 @@ function AdminPage() {
                 ))}
               </div>
 
-              {/* Table */}
+              {/* Lead Items View */}
               {filteredLeads.length === 0 ? (
                 <div className="text-center py-12 text-xs text-muted-foreground italic border-2 border-dashed border-ink/30 rounded-xl">
                   {leadsSearch || leadsStatusFilter !== "all" ? "No leads match your current filters." : "No lead inquiries recorded yet."}
                 </div>
               ) : (
-                <div className="w-full overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse min-w-[640px]">
-                    <thead>
-                      <tr className="border-b-2 border-ink bg-muted/60 text-ink">
-                        <th className="p-3 font-bold uppercase tracking-wider w-20">Date</th>
-                        <th className="p-3 font-bold uppercase tracking-wider">Contact</th>
-                        <th className="p-3 font-bold uppercase tracking-wider">Subject &amp; Message</th>
-                        <th className="p-3 font-bold uppercase tracking-wider w-40 text-center">Status</th>
-                        <th className="p-3 font-bold uppercase tracking-wider w-10"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-ink/10">
-                      {paginatedLeads.map((l) => {
-                        const statusInfo = LEAD_STATUS_LABELS[l.status] || LEAD_STATUS_LABELS.new;
-                        return (
+                <div className="space-y-4">
+                  {/* Mobile Lead Cards (Visible on screens < 768px) */}
+                  <div className="md:hidden space-y-3">
+                    {paginatedLeads.map((l) => {
+                      const statusInfo = LEAD_STATUS_LABELS[l.status] || LEAD_STATUS_LABELS.new;
+                      return (
+                        <div key={l.id} className={`border-2 border-ink bg-card p-4 rounded-xl doodle-shadow-sm space-y-3 text-xs ${l.status === "completed" || l.status === "closed" || l.status === "archived" ? "opacity-75" : ""}`}>
+                          <div className="flex items-start justify-between gap-2 border-b border-ink/15 pb-2">
+                            <div>
+                              <div className="font-bold text-foreground text-sm leading-snug">{l.name}</div>
+                              <a href={`mailto:${l.email}`} className="text-[11px] font-mono font-semibold text-coral hover:underline break-all block mt-0.5">
+                                {l.email}
+                              </a>
+                            </div>
+                            <span className={`sticker font-bold text-[10px] ${statusInfo.color}`}>
+                              {statusInfo.icon} {statusInfo.label}
+                            </span>
+                          </div>
+
+                          {l.subject && <div className="font-bold text-xs text-foreground">{l.subject}</div>}
+                          <p className="text-[11px] text-muted-foreground leading-relaxed break-words">{l.message}</p>
+
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-ink/10">
+                            <span className="font-mono text-[10px] text-muted-foreground">
+                              {new Date(l.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                            </span>
+
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <select
+                                value={l.status}
+                                onChange={(e) => handleStatusChange(l.id, e.target.value as LeadEntry["status"])}
+                                className="rounded-lg border border-ink bg-background px-2 py-1 text-[11px] font-bold outline-none cursor-pointer"
+                              >
+                                {Object.entries(LEAD_STATUS_LABELS).map(([k, v]) => (
+                                  <option key={k} value={k}>{v.icon} {v.label}</option>
+                                ))}
+                              </select>
+
+                              <button
+                                type="button"
+                                title="Delete lead"
+                                onClick={async () => {
+                                  if (!confirm(`Delete lead from ${l.name}? This cannot be undone.`)) return;
+                                  const updated = await deleteLead(l.id);
+                                  setLeads(updated);
+                                }}
+                                className="rounded-lg border border-ink/30 p-1.5 text-muted-foreground hover:bg-coral hover:text-coral-foreground hover:border-coral transition-colors touch-manipulation min-h-[36px]"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Desktop & Tablet Table (Visible on screens >= 768px) */}
+                  <div className="hidden md:block w-full overflow-x-auto rounded-xl border-2 border-ink">
+                    <table className="w-full text-left text-xs border-collapse min-w-[640px]">
+                      <thead>
+                        <tr className="border-b-2 border-ink bg-muted/60 text-ink">
+                          <th className="p-3 font-bold uppercase tracking-wider w-20">Date</th>
+                          <th className="p-3 font-bold uppercase tracking-wider">Contact</th>
+                          <th className="p-3 font-bold uppercase tracking-wider">Subject &amp; Message</th>
+                          <th className="p-3 font-bold uppercase tracking-wider w-40 text-center">Status</th>
+                          <th className="p-3 font-bold uppercase tracking-wider w-10"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-ink/10">
+                        {paginatedLeads.map((l) => (
                           <tr key={l.id} className={`hover:bg-muted/20 transition-colors ${l.status === "completed" || l.status === "closed" || l.status === "archived" ? "opacity-60" : ""}`}>
                             <td className="p-3 align-top font-mono text-[11px] text-muted-foreground whitespace-nowrap">
                               {new Date(l.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
@@ -2859,16 +3047,16 @@ function AdminPage() {
                                   const updated = await deleteLead(l.id);
                                   setLeads(updated);
                                 }}
-                                className="rounded-lg border border-ink/30 p-1.5 text-muted-foreground hover:bg-coral hover:text-coral-foreground hover:border-coral transition-colors touch-manipulation"
+                                className="rounded-lg border border-ink/30 p-1.5 text-muted-foreground hover:bg-coral hover:text-coral-foreground hover:border-coral transition-colors touch-manipulation min-h-[36px]"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </td>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
 
@@ -3083,7 +3271,7 @@ function AdminPage() {
       {showPwdModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
           <div
-            className="w-full max-w-md border-2 border-ink bg-card p-6 doodle-shadow relative"
+            className="w-full max-w-md border-2 border-ink bg-card p-6 doodle-shadow relative max-h-[90vh] overflow-y-auto"
             style={{ borderRadius: "24px 30px 22px 28px" }}
           >
             <button
