@@ -137,10 +137,7 @@ export const Route = createFileRoute("/admin")({
 });
 
 function AdminPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("doodle_admin_authenticated") === "true";
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [passcode, setPasscode] = useState("");
   const [activeTab, setActiveTab] = useState<
     | "analytics"
@@ -160,8 +157,15 @@ function AdminPage() {
   >("analytics");
 
   // Admin Account & Profile State
-  const [adminProfile, setAdminProfile] = useState<AdminProfile>(() => getAdminProfileLocal());
-  const [auditLogs, setAuditLogs] = useState<LoginAuditEntry[]>(() => fetchLoginAuditLogs());
+  const [adminProfile, setAdminProfile] = useState<AdminProfile>({
+    id: "admin_1",
+    username: "admin",
+    display_name: "Sai Prithvi (Admin)",
+    email: "Saiprithvi0705@gmail.com",
+    avatar_url: "",
+    role: "Super Admin",
+  });
+  const [auditLogs, setAuditLogs] = useState<LoginAuditEntry[]>([]);
   const [profileForm, setProfileForm] = useState<AdminProfile>(adminProfile);
   const [pwdForm, setPwdForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
   const [accPwdMsg, setAccPwdMsg] = useState<{ text: string; type: "success" | "error" } | null>(null);
@@ -179,11 +183,39 @@ function AdminPage() {
   const liveSubscribers = useSubscribersCMS();
 
   // EmailJS Settings State
-  const [emailConfig, setEmailConfig] = useState<EmailJSConfig>(() => getEmailJSConfig());
+  const [emailConfig, setEmailConfig] = useState<EmailJSConfig>({
+    serviceId: "service_default",
+    templateId: "template_default",
+    publicKey: "user_default",
+    recipientEmail: "Saiprithvi0705@gmail.com",
+    enabled: true,
+  });
 
   // State initialized with live Supabase data
   const [cmsContent, setCmsContent] = useState<MasterCMSContent>(liveCMSContent);
-  const [analyticsStats, setAnalyticsStats] = useState<RealAnalyticsStats>(getRealAnalyticsStats());
+  const [analyticsStats, setAnalyticsStats] = useState<RealAnalyticsStats>({
+    totalVisitors: 0,
+    activeVisitors: 0,
+    returningVisitors: 0,
+    totalPageViews: 0,
+    avgDurationSec: 0,
+    rawEventsCount: 0,
+    deviceBreakdown: {},
+    topPages: [],
+    visitorTimeline: [],
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && localStorage.getItem("doodle_admin_authenticated") === "true") {
+      setIsAuthenticated(true);
+    }
+    const prof = getAdminProfileLocal();
+    setAdminProfile(prof);
+    setProfileForm(prof);
+    setAuditLogs(fetchLoginAuditLogs());
+    setEmailConfig(getEmailJSConfig());
+    setAnalyticsStats(getRealAnalyticsStats());
+  }, []);
   const [projects, setProjects] = useState<ShowcaseProject[]>(liveProjects);
   const [blogs, setBlogs] = useState<BlogPost[]>(liveBlogs);
   const [services, setServices] = useState<ServiceItem[]>(liveServices);
