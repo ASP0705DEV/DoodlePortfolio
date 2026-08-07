@@ -766,12 +766,12 @@ function AdminPage() {
       <SiteNav />
       <main className="pt-28 pb-20">
         <Section id="admin-dashboard" className="max-w-6xl">
-          <div className="flex flex-wrap items-center justify-between border-b-2 border-ink pb-6 mb-8 gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b-2 border-ink pb-6 mb-8 gap-4">
             <div>
               <span className="sticker bg-mint">ASP0705DEV Admin Portal</span>
-              <h1 className="font-display text-3xl sm:text-4xl font-bold mt-1">CMS & Analytics Control Room</h1>
+              <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold mt-1">CMS & Analytics Control Room</h1>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               <button
                 type="button"
                 onClick={async () => {
@@ -779,16 +779,16 @@ function AdminPage() {
                   refreshData();
                   alert("Supabase tables (projects, services, blog_posts, site_settings) seeded successfully!");
                 }}
-                className="inline-flex items-center gap-1.5 rounded-xl border-2 border-ink bg-sun px-3 py-2 text-xs font-bold doodle-shadow-sm hover:bg-sun/80"
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-ink bg-sun px-3 py-2 text-xs font-bold doodle-shadow-sm hover:bg-sun/80 touch-manipulation"
               >
-                <Upload className="h-4 w-4" /> Seed Supabase Tables
+                <Upload className="h-3.5 w-3.5" /> Seed Tables
               </button>
               <button
                 type="button"
                 onClick={refreshData}
-                className="inline-flex items-center gap-1.5 rounded-xl border-2 border-ink bg-card px-3 py-2 text-xs font-bold doodle-shadow-sm hover:bg-muted"
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-ink bg-card px-3 py-2 text-xs font-bold doodle-shadow-sm hover:bg-muted touch-manipulation"
               >
-                <RefreshCw className="h-4 w-4" /> Refresh Real Data
+                <RefreshCw className="h-3.5 w-3.5" /> Refresh Real Data
               </button>
               <button
                 type="button"
@@ -797,9 +797,9 @@ function AdminPage() {
                   setPwdStep(1);
                   setPwdStatus(null);
                 }}
-                className="inline-flex items-center gap-1.5 rounded-xl border-2 border-ink bg-sun px-3 py-2 text-xs font-bold doodle-shadow-sm hover:bg-sun/80"
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-ink bg-sun px-3 py-2 text-xs font-bold doodle-shadow-sm hover:bg-sun/80 touch-manipulation"
               >
-                <KeyRound className="h-4 w-4" /> Change Passcode
+                <KeyRound className="h-3.5 w-3.5" /> Passcode
               </button>
               <button
                 type="button"
@@ -809,9 +809,9 @@ function AdminPage() {
                   }
                   setIsAuthenticated(false);
                 }}
-                className="inline-flex items-center gap-1.5 rounded-xl border-2 border-ink bg-coral text-coral-foreground px-4 py-2 text-xs font-bold doodle-shadow-sm hover:opacity-90"
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-ink bg-coral text-coral-foreground px-4 py-2 text-xs font-bold doodle-shadow-sm hover:opacity-90 touch-manipulation"
               >
-                <LogOut className="h-4 w-4" /> Lock Portal
+                <LogOut className="h-3.5 w-3.5" /> Lock Portal
               </button>
             </div>
           </div>
@@ -820,67 +820,68 @@ function AdminPage() {
           <div className="grid gap-8 lg:grid-cols-[260px_1fr] lg:items-start">
             {/* ── LEFT SIDE NAVIGATION PANEL ────────────────────────────── */}
             <aside className="lg:sticky lg:top-28 space-y-4">
-              {/* Mobile Quick Dropdown (Visible on sm/md) */}
-              <div className="lg:hidden">
-                <label className="block text-xs font-bold uppercase mb-1">Select Admin Section</label>
-                <select
-                  value={activeTab}
-                  onChange={(e) => setActiveTab(e.target.value as typeof activeTab)}
-                  className="w-full rounded-xl border-2 border-ink bg-card p-3 text-sm font-bold shadow-sm outline-none"
-                >
-                  {[
-                    { id: "analytics", label: "📊 Analytics Dashboard" },
-                    { id: "timeline", label: "👁️ Visitor Timeline" },
-                    { id: "account", label: "👤 User Account & Profile" },
-                    { id: "content", label: "🦸 Hero & About CMS" },
-                    { id: "projects", label: `🚀 Showcase Projects (${projects.length})` },
-                    { id: "services", label: `🛠️ Technical Services (${services.length})` },
-                    { id: "techstack", label: "💻 Tech Stack Matrix" },
-                    { id: "deployments", label: `☁️ Deployments (${deployments.length})` },
-                    { id: "resume", label: "📄 Resume & Career" },
-                    { id: "company", label: "🏢 ASP0705DEV Studio" },
-                    { id: "blogs", label: `📝 Blog Articles (${blogs.length})` },
-                    { id: "leads", label: `📬 Lead CRM (${leads.length})` },
-                    { id: "security", label: "🔑 Security & Passcode" },
-                    { id: "backup", label: "💾 Backup & Restore" },
-                  ].map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Horizontal Scrollable Ribbon on Mobile/Tablet */}
-              <div className="flex overflow-x-auto gap-2 pb-2 lg:hidden no-scrollbar">
-                {[
-                  { id: "analytics", label: "Analytics", icon: BarChart3 },
-                  { id: "timeline", label: "Timeline", icon: UserCheck },
-                  { id: "account", label: "Account", icon: User },
-                  { id: "content", label: "Content", icon: Sliders },
-                  { id: "projects", label: `Projects (${projects.length})`, icon: FolderPlus },
-                  { id: "services", label: `Services (${services.length})`, icon: Globe },
-                  { id: "techstack", label: "Tech Stack", icon: Code },
-                  { id: "deployments", label: `Deployments (${deployments.length})`, icon: Server },
-                  { id: "resume", label: "Resume", icon: Briefcase },
-                  { id: "company", label: "Studio", icon: Building2 },
-                  { id: "blogs", label: `Blogs (${blogs.length})`, icon: FileText },
-                  { id: "leads", label: `CRM (${leads.length})`, icon: Users },
-                  { id: "security", label: "Security", icon: KeyRound },
-                  { id: "backup", label: "Backup", icon: Download },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                    className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl border-2 border-ink px-3 py-1.5 text-xs font-bold transition-all ${
-                      activeTab === tab.id ? "bg-ink text-background" : "bg-card"
-                    }`}
+              {/* Responsive Navigation Bar on Mobile & Tablet / iPad */}
+              <div className="lg:hidden sticky top-20 z-30 bg-background/95 backdrop-blur-md pt-2 pb-3 border-b-2 border-ink space-y-2">
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Admin Section</span>
+                  <select
+                    value={activeTab}
+                    onChange={(e) => setActiveTab(e.target.value as typeof activeTab)}
+                    className="rounded-lg border-2 border-ink bg-card px-2.5 py-1 text-xs font-bold shadow-xs outline-none cursor-pointer"
                   >
-                    <tab.icon className="h-3.5 w-3.5" />
-                    {tab.label}
-                  </button>
-                ))}
+                    {[
+                      { id: "analytics", label: "📊 Analytics" },
+                      { id: "timeline", label: "👁️ Timeline" },
+                      { id: "account", label: "👤 Account" },
+                      { id: "content", label: "🦸 Content" },
+                      { id: "projects", label: `🚀 Projects (${projects.length})` },
+                      { id: "services", label: `🛠️ Services (${services.length})` },
+                      { id: "techstack", label: "💻 Tech Stack" },
+                      { id: "deployments", label: `☁️ Deployments (${deployments.length})` },
+                      { id: "resume", label: "📄 Resume" },
+                      { id: "company", label: "🏢 Studio" },
+                      { id: "blogs", label: `📝 Blogs (${blogs.length})` },
+                      { id: "leads", label: `📬 CRM (${leads.length})` },
+                      { id: "security", label: "🔑 Security" },
+                      { id: "backup", label: "💾 Backup" },
+                    ].map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex overflow-x-auto gap-2 pb-1 pt-1 no-scrollbar touch-manipulation">
+                  {[
+                    { id: "analytics", label: "Analytics", icon: BarChart3 },
+                    { id: "timeline", label: "Timeline", icon: UserCheck },
+                    { id: "account", label: "Account", icon: User },
+                    { id: "content", label: "Content", icon: Sliders },
+                    { id: "projects", label: `Projects (${projects.length})`, icon: FolderPlus },
+                    { id: "services", label: `Services (${services.length})`, icon: Globe },
+                    { id: "techstack", label: "Tech Stack", icon: Code },
+                    { id: "deployments", label: `Deployments (${deployments.length})`, icon: Server },
+                    { id: "resume", label: "Resume", icon: Briefcase },
+                    { id: "company", label: "Studio", icon: Building2 },
+                    { id: "blogs", label: `Blogs (${blogs.length})`, icon: FileText },
+                    { id: "leads", label: `CRM (${leads.length})`, icon: Users },
+                    { id: "security", label: "Security", icon: KeyRound },
+                    { id: "backup", label: "Backup", icon: Download },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                      className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl border-2 border-ink px-3 py-1.5 text-xs font-bold transition-all touch-manipulation ${
+                        activeTab === tab.id ? "bg-ink text-background scale-105 doodle-shadow-sm" : "bg-card text-foreground hover:bg-muted/40"
+                      }`}
+                    >
+                      <tab.icon className="h-3.5 w-3.5" />
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Desktop Side Panel Navigation (Visible on lg+) */}
@@ -1200,8 +1201,8 @@ function AdminPage() {
               ) : (
                 <div className="space-y-4">
                   {/* Desktop & Tablet Full-Width Responsive Table */}
-                  <div className="w-full">
-                    <table className="w-full text-left text-xs border-collapse">
+                  <div className="w-full overflow-x-auto rounded-xl border-2 border-ink">
+                    <table className="w-full text-left text-xs border-collapse min-w-[640px]">
                       <thead>
                         <tr className="border-b-2 border-ink bg-muted/60 text-ink">
                           <th className="p-3.5 font-bold uppercase tracking-wider w-1/3">Visitor &amp; Email Identity</th>
@@ -1674,7 +1675,7 @@ function AdminPage() {
           {/* TAB 4: PROJECTS & CASE STUDIES MANAGER */}
           {activeTab === "projects" ? (
             <div className="space-y-6">
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b-2 border-ink/20 pb-4">
                 <div>
                   <h3 className="font-display text-xl font-bold">Featured Projects & Case Studies ({projects.length})</h3>
                   <p className="text-xs text-muted-foreground">Manage project cards, live links, code repos, images, and full case study details.</p>
@@ -1875,7 +1876,7 @@ function AdminPage() {
           {/* TAB 5: SERVICES MANAGER */}
           {activeTab === "services" ? (
             <div className="space-y-6">
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b-2 border-ink/20 pb-4">
                 <div>
                   <h3 className="font-display text-xl font-bold">Technical Services ({services.length})</h3>
                   <p className="text-xs text-muted-foreground">Manage service offerings, deliverables, and capabilities.</p>
@@ -2016,7 +2017,7 @@ function AdminPage() {
           {/* TAB 6: TECH STACK & IMAGE ICONS MANAGER */}
           {activeTab === "techstack" ? (
             <div className="space-y-6">
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b-2 border-ink/20 pb-4">
                 <div>
                   <h3 className="font-display text-xl font-bold">Technology Stack & Image Icons Manager</h3>
                   <p className="text-xs text-muted-foreground">Manage your technical skills toolbox. Add custom image URLs or SVG paths for tech icons.</p>
@@ -2129,7 +2130,7 @@ function AdminPage() {
           {/* TAB 7: DEPLOYMENTS & INFRASTRUCTURE SHOWCASE MANAGER */}
           {activeTab === "deployments" ? (
             <div className="space-y-6">
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b-2 border-ink/20 pb-4">
                 <div>
                   <h3 className="font-display text-xl font-bold">Deployment & Infrastructure Showcase ({deployments.length})</h3>
                   <p className="text-xs text-muted-foreground">Manage hosted platforms, build names, custom icon URLs, and clickable redirect links.</p>
@@ -2624,7 +2625,7 @@ function AdminPage() {
           {/* TAB 10: BLOG ARTICLES MANAGER */}
           {activeTab === "blogs" ? (
             <div className="space-y-6">
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b-2 border-ink/20 pb-4">
                 <div>
                   <h3 className="font-display text-xl font-bold">Blog Articles ({blogs.length})</h3>
                   <p className="text-xs text-muted-foreground">Publish technical posts and agentic AI tutorials.</p>
@@ -2708,10 +2709,10 @@ function AdminPage() {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 {blogs.map((b) => (
-                  <div key={b.id} className="border-2 border-ink bg-card p-4 rounded-xl flex items-center justify-between">
-                    <div>
-                      <div className="font-bold text-sm font-display">{b.title}</div>
-                      <div className="text-xs text-muted-foreground">{b.category} · {b.date} · {b.readTime}</div>
+                  <div key={b.id} className="border-2 border-ink bg-card p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 doodle-shadow-sm">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-sm font-display leading-tight">{b.title}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{b.category} · {b.date} · {b.readTime}</div>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
