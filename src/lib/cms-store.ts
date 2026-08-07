@@ -398,6 +398,7 @@ export type ResumeCMS = {
 };
 
 export const defaultResumeCMS: ResumeCMS = {
+  ...defaultResume,
   profile: {
     summary: "Full Stack Developer at Gagellan Global Solutions, based in India. I build production web platforms end to end — React and TypeScript on the front, Node and Python services behind them — and I'm going deep on agentic AI: systems that reason, retrieve, plan and act instead of just answering.",
     location: "India",
