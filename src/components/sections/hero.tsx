@@ -5,7 +5,7 @@ import { MagneticButton } from "@/components/ui-kit";
 import { DoodleArrow, DoodleStar, DoodleSquiggle } from "@/components/doodles";
 import { useCMSContent } from "@/lib/cms-store";
 import { track } from "@/lib/analytics";
-import doodlePortrait from "@/assets/sai-prithvi-doodle.png";
+import { DoodleImage } from "@/components/ui/doodle-image";
 
 // Fixed positions to prevent SSR/Client hydration mismatch
 const SNIPPET_POSITIONS = [
@@ -158,8 +158,8 @@ export function Hero() {
           >
             {/* Doodle portrait image */}
             <div className="relative overflow-hidden rounded-2xl border-2 border-ink bg-paper">
-              <img
-                src={doodlePortrait}
+              <DoodleImage
+                src={hero.hero_image}
                 alt="Sai Prithvi — Doodle Portrait"
                 className="mx-auto h-52 w-full object-cover object-top sm:h-64"
               />

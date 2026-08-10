@@ -41,6 +41,7 @@ import {
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 import { Section, Reveal } from "@/components/ui-kit";
+import { DoodleImage } from "@/components/ui/doodle-image";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -640,16 +641,23 @@ function AdminPage() {
     e.preventDefault();
     if (!editingBlog?.title) return;
 
+    const imgUrl = editingBlog.featuredImage || (editingBlog as any).coverImage || (editingBlog as any).cover_image || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80";
+    const summaryText = editingBlog.summary || (editingBlog as any).excerpt || "";
+    const tagsArray = editingBlog.tags && Array.isArray(editingBlog.tags) ? editingBlog.tags : ["Engineering", "AI"];
+
     const blog: BlogPost = {
       id: editingBlog.id || "blog_" + Date.now().toString(36),
       slug: editingBlog.slug || editingBlog.title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
       title: editingBlog.title,
-      excerpt: editingBlog.excerpt || "",
+      summary: summaryText,
       content: editingBlog.content || "",
       date: editingBlog.date || new Date().toISOString().slice(0, 10),
       readTime: editingBlog.readTime || "5 min read",
-      category: editingBlog.category || "Engineering",
-      coverImage: editingBlog.coverImage || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80",
+      category: (editingBlog.category as BlogPost["category"]) || "AI & Agents",
+      author: editingBlog.author || "Adapa Sai Prithvi",
+      featuredImage: imgUrl,
+      published: editingBlog.published !== false,
+      tags: tagsArray,
     };
     const updated = await saveBlogLocal(blog);
     setBlogs(updated);
@@ -1786,14 +1794,35 @@ function AdminPage() {
                     />
                   </label>
                   <label className="block sm:col-span-2">
-                    <span className="font-bold">Hero Image / Avatar URL</span>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-bold">Hero Image / Avatar URL or Google Drive Link</span>
+                      <span className="text-[10px] font-mono text-muted-foreground bg-card border border-ink/20 px-1.5 py-0.5 rounded">
+                        Accepts drive.google.com/file/d/ID/view links
+                      </span>
+                    </div>
                     <input
                       value={cmsContent.hero.hero_image || ""}
                       onChange={(e) => setCmsContent({ ...cmsContent, hero: { ...cmsContent.hero, hero_image: e.target.value } })}
-                      className="w-full mt-1 rounded-xl border border-ink p-2 bg-background"
-                      placeholder="https://images.unsplash.com/..."
+                      className="w-full rounded-xl border border-ink p-2.5 bg-background font-mono text-xs outline-none"
+                      placeholder="https://drive.google.com/file/d/FILE_ID/view?usp=sharing"
                     />
                   </label>
+
+                  {cmsContent.hero.hero_image && (
+                    <div className="sm:col-span-2 p-3 border-2 border-ink rounded-xl bg-card space-y-2">
+                      <span className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground block">
+                        Live Hero Image Preview (Google Drive Auto-Resolved)
+                      </span>
+                      <div className="h-36 w-36 overflow-hidden rounded-full border-2 border-ink bg-muted">
+                        <DoodleImage
+                          src={cmsContent.hero.hero_image}
+                          alt="Hero Avatar Preview"
+                          className="h-full w-full object-cover"
+                          showFallbackBadge={true}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1975,14 +2004,34 @@ function AdminPage() {
                       />
                     </label>
                     <label className="block sm:col-span-2">
-                      <span className="font-bold">Cover Image URL</span>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="font-bold">Cover Image URL or Google Drive Link</span>
+                        <span className="text-[10px] font-mono text-muted-foreground bg-card border border-ink/20 px-1.5 py-0.5 rounded">
+                          Accepts drive.google.com/file/d/ID/view links
+                        </span>
+                      </div>
                       <input
                         value={editingProject.cover_image || ""}
                         onChange={(e) => setEditingProject((p) => ({ ...p, cover_image: e.target.value }))}
-                        className="w-full mt-1 rounded-xl border border-ink p-2 bg-card"
-                        placeholder="https://images.unsplash.com/..."
+                        className="w-full rounded-xl border border-ink p-2.5 bg-card font-mono text-xs outline-none"
+                        placeholder="https://drive.google.com/file/d/FILE_ID/view?usp=sharing"
                       />
                     </label>
+                    {editingProject.cover_image && (
+                      <div className="sm:col-span-2 p-3 border-2 border-ink rounded-xl bg-card space-y-2">
+                        <span className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground block">
+                          Live Cover Image Preview (Google Drive Auto-Resolved)
+                        </span>
+                        <div className="h-40 w-full overflow-hidden rounded-lg border border-ink bg-muted">
+                          <DoodleImage
+                            src={editingProject.cover_image}
+                            alt="Cover Preview"
+                            className="h-full w-full object-cover"
+                            showFallbackBadge={true}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="flex justify-end gap-2 pt-2">
                     <button type="button" onClick={() => setEditingProject(null)} className="rounded-xl border border-ink px-4 py-2 bg-card">
@@ -1997,8 +2046,17 @@ function AdminPage() {
 
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {projects.map((p) => (
-                  <div key={p.id} className="border-2 border-ink bg-card p-4 rounded-xl flex flex-col justify-between doodle-shadow-sm">
+                  <div key={p.id} className="border-2 border-ink bg-card p-4 rounded-xl flex flex-col justify-between doodle-shadow-sm space-y-3">
                     <div>
+                      {p.cover_image && (
+                        <div className="h-28 w-full overflow-hidden rounded-lg border border-ink bg-muted mb-2">
+                          <DoodleImage
+                            src={p.cover_image}
+                            alt={p.title}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      )}
                       <div className="flex justify-between items-start">
                         <span className="sticker bg-sun capitalize">{p.category}</span>
                         <div className="flex items-center gap-1">
@@ -2009,17 +2067,18 @@ function AdminPage() {
                               setProjectTechStackInput(p.tech_stack.join(", "));
                               setProjectFeaturesInput((p.features || []).join(", "));
                             }}
-                            className="rounded-lg border border-ink p-1 hover:bg-muted"
+                            className="rounded-lg border border-ink p-1.5 hover:bg-muted touch-manipulation min-h-[36px]"
                           >
                             <Edit className="h-3.5 w-3.5" />
                           </button>
                           <button
                             type="button"
                             onClick={async () => {
+                              if (!confirm(`Delete project "${p.title}"?`)) return;
                               const updated = await deleteProjectLocal(p.id);
                               setProjects(updated);
                             }}
-                            className="rounded-lg border border-ink p-1 hover:bg-coral hover:text-coral-foreground"
+                            className="rounded-lg border border-ink p-1.5 hover:bg-coral hover:text-coral-foreground touch-manipulation min-h-[36px]"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
@@ -2816,7 +2875,15 @@ function AdminPage() {
 
               {editingBlog ? (
                 <form onSubmit={handleBlogSave} className="border-2 border-ink bg-bubble/20 p-5 doodle-shadow rounded-2xl space-y-4 text-xs">
-                  <h4 className="font-bold text-base font-display">Edit Blog Article</h4>
+                  <div className="flex items-center justify-between border-b border-ink/15 pb-2">
+                    <h4 className="font-bold text-base font-display">
+                      {editingBlog.id ? "Edit Blog Article" : "Create New Blog Article"}
+                    </h4>
+                    <span className="sticker bg-sun text-ink font-mono font-bold text-[10px]">
+                      Google Drive Image Supported
+                    </span>
+                  </div>
+
                   <div className="grid gap-3 sm:grid-cols-2">
                     <label className="block sm:col-span-2">
                       <span className="font-bold">Article Title</span>
@@ -2824,17 +2891,61 @@ function AdminPage() {
                         required
                         value={editingBlog.title || ""}
                         onChange={(e) => setEditingBlog((b) => ({ ...b, title: e.target.value }))}
-                        className="w-full mt-1 rounded-xl border border-ink p-2 bg-card"
+                        className="w-full mt-1 rounded-xl border border-ink p-2.5 bg-card outline-none font-medium text-sm"
+                        placeholder="e.g., Building Autonomous Agentic AI Systems"
                       />
                     </label>
+
+                    <label className="block sm:col-span-2">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="font-bold">Featured Image URL or Google Drive Link</span>
+                        <span className="text-[10px] font-mono text-muted-foreground bg-card border border-ink/20 px-1.5 py-0.5 rounded">
+                          Accepts drive.google.com/file/d/ID/view links
+                        </span>
+                      </div>
+                      <input
+                        value={editingBlog.featuredImage || (editingBlog as any).coverImage || ""}
+                        onChange={(e) =>
+                          setEditingBlog((b) => ({ ...b, featuredImage: e.target.value, coverImage: e.target.value }))
+                        }
+                        className="w-full rounded-xl border border-ink p-2.5 bg-card font-mono text-xs outline-none"
+                        placeholder="https://drive.google.com/file/d/FILE_ID/view?usp=sharing"
+                      />
+                    </label>
+
+                    {/* Live Image Preview */}
+                    {(editingBlog.featuredImage || (editingBlog as any).coverImage) && (
+                      <div className="sm:col-span-2 p-3 border-2 border-ink rounded-xl bg-card space-y-2">
+                        <span className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground block">
+                          Live Image Preview (Google Drive Auto-Resolved)
+                        </span>
+                        <div className="h-40 w-full overflow-hidden rounded-lg border border-ink bg-muted">
+                          <DoodleImage
+                            src={editingBlog.featuredImage || (editingBlog as any).coverImage}
+                            alt="Preview"
+                            className="h-full w-full object-cover"
+                            showFallbackBadge={true}
+                          />
+                        </div>
+                      </div>
+                    )}
+
                     <label className="block">
                       <span className="font-bold">Category</span>
-                      <input
-                        value={editingBlog.category || "Engineering"}
-                        onChange={(e) => setEditingBlog((b) => ({ ...b, category: e.target.value }))}
-                        className="w-full mt-1 rounded-xl border border-ink p-2 bg-card"
-                      />
+                      <select
+                        value={editingBlog.category || "AI & Agents"}
+                        onChange={(e) =>
+                          setEditingBlog((b) => ({ ...b, category: e.target.value as BlogPost["category"] }))
+                        }
+                        className="w-full mt-1 rounded-xl border border-ink p-2 bg-card font-bold outline-none cursor-pointer"
+                      >
+                        <option value="AI & Agents">AI & Agents</option>
+                        <option value="Full Stack">Full Stack</option>
+                        <option value="Computer Vision">Computer Vision</option>
+                        <option value="Architecture">Architecture</option>
+                      </select>
                     </label>
+
                     <label className="block">
                       <span className="font-bold">Read Time</span>
                       <input
@@ -2843,57 +2954,140 @@ function AdminPage() {
                         className="w-full mt-1 rounded-xl border border-ink p-2 bg-card"
                       />
                     </label>
-                    <label className="block sm:col-span-2">
-                      <span className="font-bold">Excerpt</span>
+
+                    <label className="block">
+                      <span className="font-bold">Author</span>
                       <input
-                        value={editingBlog.excerpt || ""}
-                        onChange={(e) => setEditingBlog((b) => ({ ...b, excerpt: e.target.value }))}
+                        value={editingBlog.author || "Adapa Sai Prithvi"}
+                        onChange={(e) => setEditingBlog((b) => ({ ...b, author: e.target.value }))}
                         className="w-full mt-1 rounded-xl border border-ink p-2 bg-card"
                       />
                     </label>
+
+                    <label className="block">
+                      <span className="font-bold">Publish Date</span>
+                      <input
+                        type="date"
+                        value={editingBlog.date || new Date().toISOString().slice(0, 10)}
+                        onChange={(e) => setEditingBlog((b) => ({ ...b, date: e.target.value }))}
+                        className="w-full mt-1 rounded-xl border border-ink p-2 bg-card font-mono"
+                      />
+                    </label>
+
+                    <label className="block sm:col-span-2">
+                      <span className="font-bold">Tags (Comma-Separated)</span>
+                      <input
+                        value={editingBlog.tags ? editingBlog.tags.join(", ") : "AI, Engineering, Full Stack"}
+                        onChange={(e) =>
+                          setEditingBlog((b) => ({
+                            ...b,
+                            tags: e.target.value
+                              .split(",")
+                              .map((t) => t.trim())
+                              .filter(Boolean),
+                          }))
+                        }
+                        className="w-full mt-1 rounded-xl border border-ink p-2 bg-card font-mono text-xs"
+                        placeholder="e.g. AI Agents, React, TypeScript, Vector Search"
+                      />
+                    </label>
+
+                    <label className="block sm:col-span-2">
+                      <span className="font-bold">Summary / Excerpt</span>
+                      <textarea
+                        rows={2}
+                        value={editingBlog.summary || (editingBlog as any).excerpt || ""}
+                        onChange={(e) =>
+                          setEditingBlog((b) => ({ ...b, summary: e.target.value, excerpt: e.target.value }))
+                        }
+                        className="w-full mt-1 rounded-xl border border-ink p-2 bg-card font-sans text-xs"
+                        placeholder="Brief 1-2 sentence overview of the article for cards and meta descriptions."
+                      />
+                    </label>
+
                     <label className="block sm:col-span-2">
                       <span className="font-bold">Content (Markdown Format)</span>
                       <textarea
-                        rows={8}
+                        rows={10}
                         value={editingBlog.content || ""}
                         onChange={(e) => setEditingBlog((b) => ({ ...b, content: e.target.value }))}
-                        className="w-full mt-1 rounded-xl border border-ink p-2 bg-card font-mono text-xs"
+                        className="w-full mt-1 rounded-xl border border-ink p-2.5 bg-card font-mono text-xs outline-none leading-relaxed"
+                        placeholder="# Heading\n\nWrite article content here..."
                       />
                     </label>
                   </div>
-                  <div className="flex justify-end gap-2 pt-2">
-                    <button type="button" onClick={() => setEditingBlog(null)} className="rounded-xl border border-ink px-4 py-2 bg-card">
-                      Cancel
-                    </button>
-                    <button type="submit" className="rounded-xl border border-ink bg-coral text-coral-foreground px-5 py-2 font-bold">
-                      Save Article
-                    </button>
+
+                  <div className="flex items-center justify-between pt-3 border-t border-ink/15">
+                    <label className="flex items-center gap-2 cursor-pointer font-bold text-xs">
+                      <input
+                        type="checkbox"
+                        checked={editingBlog.published !== false}
+                        onChange={(e) => setEditingBlog((b) => ({ ...b, published: e.target.checked }))}
+                        className="h-4 w-4 rounded border-ink"
+                      />
+                      Published & Visible on Portfolio Frontend
+                    </label>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditingBlog(null)}
+                        className="rounded-xl border-2 border-ink px-4 py-2 bg-card font-bold"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="rounded-xl border-2 border-ink bg-coral text-coral-foreground px-5 py-2 font-bold doodle-shadow-sm hover:-translate-y-0.5 transition-transform"
+                      >
+                        Save Article
+                      </button>
+                    </div>
                   </div>
                 </form>
               ) : null}
 
               <div className="grid gap-4 sm:grid-cols-2">
                 {blogs.map((b) => (
-                  <div key={b.id} className="border-2 border-ink bg-card p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 doodle-shadow-sm">
-                    <div className="min-w-0 flex-1">
-                      <div className="font-bold text-sm font-display leading-tight">{b.title}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{b.category} · {b.date} · {b.readTime}</div>
+                  <div
+                    key={b.id}
+                    className="border-2 border-ink bg-card p-4 rounded-xl flex flex-col sm:flex-row items-start justify-between gap-3 doodle-shadow-sm"
+                  >
+                    <div className="flex gap-3 items-start min-w-0 flex-1">
+                      <div className="h-16 w-20 shrink-0 overflow-hidden rounded-lg border border-ink bg-muted">
+                        <DoodleImage
+                          src={b.featuredImage || (b as any).coverImage}
+                          alt={b.title}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-bold text-sm font-display leading-tight truncate">{b.title}</div>
+                        <div className="text-[11px] text-muted-foreground mt-1 flex flex-wrap items-center gap-1.5">
+                          <span className="sticker bg-sun text-ink font-bold text-[9px]">{b.category}</span>
+                          <span>· {b.date} · {b.readTime}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
+
+                    <div className="flex items-center gap-2 shrink-0">
                       <button
                         type="button"
+                        title="Edit post"
                         onClick={() => setEditingBlog(b)}
-                        className="rounded-lg border border-ink p-1.5 hover:bg-muted"
+                        className="rounded-lg border-2 border-ink p-1.5 hover:bg-muted touch-manipulation min-h-[36px]"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
                         type="button"
+                        title="Delete post"
                         onClick={async () => {
+                          if (!confirm(`Delete blog post "${b.title}"?`)) return;
                           const updated = await deleteBlogLocal(b.id);
                           setBlogs(updated);
                         }}
-                        className="rounded-lg border border-ink p-1.5 hover:bg-coral hover:text-coral-foreground"
+                        className="rounded-lg border-2 border-ink p-1.5 hover:bg-coral hover:text-coral-foreground touch-manipulation min-h-[36px]"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>

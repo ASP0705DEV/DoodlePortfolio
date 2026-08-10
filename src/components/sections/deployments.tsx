@@ -2,6 +2,7 @@ import { ExternalLink, CheckCircle, Server, Cloud, Cpu, Globe2, ShieldCheck, Box
 import { Reveal, Section, SectionHeading } from "@/components/ui-kit";
 import { useDeploymentsCMS, type DeploymentPlatformCMS } from "@/lib/cms-store";
 import { track } from "@/lib/analytics";
+import { DoodleImage } from "@/components/ui/doodle-image";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Globe2,
@@ -43,7 +44,7 @@ export function DeploymentShowcase() {
                 <div className="mt-4 flex items-center gap-3">
                   <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border-2 border-ink bg-background doodle-shadow-sm overflow-hidden">
                     {plat.iconUrl ? (
-                      <img src={plat.iconUrl} alt={plat.name} className="h-6 w-6 object-contain" />
+                      <DoodleImage src={plat.iconUrl} alt={plat.name} className="h-6 w-6 object-contain" />
                     ) : (
                       <IconComponent className="h-5 w-5 text-ink" />
                     )}

@@ -7,6 +7,8 @@ import { Section, SectionHeading, Reveal } from "@/components/ui-kit";
 import { fetchAllBlogs } from "@/lib/cms-store";
 import { usePageTracking } from "@/lib/analytics";
 
+import { DoodleImage } from "@/components/ui/doodle-image";
+
 export const Route = createFileRoute("/blog")({
   head: () => ({
     meta: [
@@ -84,7 +86,7 @@ function BlogPage() {
                   style={{ borderRadius: "22px 28px 22px 30px" }}
                 >
                   <div className="h-44 overflow-hidden rounded-xl border-2 border-ink mb-4">
-                    <img src={post.featuredImage} alt={post.title} className="h-full w-full object-cover" />
+                    <DoodleImage src={post.featuredImage} alt={post.title} className="h-full w-full object-cover" />
                   </div>
 
                   <div className="flex items-center gap-2 mb-3">

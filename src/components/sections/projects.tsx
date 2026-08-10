@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useProjectsCMS } from "@/lib/cms-store";
 import { type ShowcaseProject } from "@/lib/projects-data";
 import { track } from "@/lib/analytics";
+import { DoodleImage } from "@/components/ui/doodle-image";
 
 const categoryLabels: Record<string, string> = {
   ai: "AI & Agents",
@@ -95,11 +96,10 @@ export function Projects() {
                 className={`relative mb-4 grid h-36 place-items-center overflow-hidden rounded-xl border-2 border-ink ${cardTints[i % cardTints.length]}`}
               >
                 {p.cover_image ? (
-                  <img
+                  <DoodleImage
                     src={p.cover_image}
                     alt={p.title}
-                    loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 ) : (
                   <span className="hand text-4xl">{p.title.slice(0, 2).toUpperCase()}</span>
@@ -207,7 +207,7 @@ export function Projects() {
                 </div>
               ) : openProject.cover_image ? (
                 <div className="h-60 sm:h-72 border-2 border-ink rounded-2xl overflow-hidden doodle-shadow">
-                  <img src={openProject.cover_image} alt={openProject.title} className="h-full w-full object-cover" />
+                  <DoodleImage src={openProject.cover_image} alt={openProject.title} className="h-full w-full object-cover" />
                 </div>
               ) : null}
 

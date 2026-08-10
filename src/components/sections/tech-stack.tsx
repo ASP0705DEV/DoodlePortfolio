@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { Reveal, Section, SectionHeading } from "@/components/ui-kit";
 import { useTechStackCMS, type TechItemCMS } from "@/lib/cms-store";
 import { track } from "@/lib/analytics";
+import { DoodleImage } from "@/components/ui/doodle-image";
 
 function IconTile({ item, index }: { item: TechItemCMS; index: number }) {
   return (
@@ -21,7 +22,7 @@ function IconTile({ item, index }: { item: TechItemCMS; index: number }) {
         style={{ borderRadius: "16px 20px 16px 22px" }}
       >
         {item.imageUrl ? (
-          <img
+          <DoodleImage
             src={item.imageUrl}
             alt={item.title}
             className="h-7 w-7 object-contain transition-transform duration-300 group-hover:scale-110 sm:h-9 sm:w-9"

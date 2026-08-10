@@ -1170,20 +1170,24 @@ export function useBlogsCMS(): BlogPost[] {
       try {
         const { data, error } = await supabase.from("blog_posts").select("*").order("created_at", { ascending: false });
         if (!error && Array.isArray(data)) {
-          const mapped: BlogPost[] = data.map((b) => ({
-            id: b.id,
-            slug: b.slug,
-            title: b.title,
-            summary: b.summary || b.excerpt || "",
-            content: b.content || "",
-            category: (b.category as BlogPost["category"]) || "AI & Agents",
-            author: b.author || "Adapa Sai Prithvi",
-            date: b.date || (b.created_at ? new Date(b.created_at).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)),
-            readTime: b.read_time || b.readTime || "5 min read",
-            featuredImage: b.cover_image || b.featuredImage || "https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=800&q=80",
-            published: b.published !== false,
-            tags: b.tags && Array.isArray(b.tags) && b.tags.length > 0 ? b.tags : ["Engineering", "AI"],
-          }));
+          const mapped: BlogPost[] = data.map((b) => {
+            const summaryVal = b.summary || b.excerpt || "";
+            const imgVal = b.cover_image || b.coverImage || b.featuredImage || "https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=800&q=80";
+            return {
+              id: b.id,
+              slug: b.slug,
+              title: b.title,
+              summary: summaryVal,
+              content: b.content || "",
+              category: (b.category as BlogPost["category"]) || "AI & Agents",
+              author: b.author || "Adapa Sai Prithvi",
+              date: b.date || (b.created_at ? new Date(b.created_at).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)),
+              readTime: b.read_time || b.readTime || "5 min read",
+              featuredImage: imgVal,
+              published: b.published !== false,
+              tags: b.tags && Array.isArray(b.tags) && b.tags.length > 0 ? b.tags : ["Engineering", "AI"],
+            };
+          });
           setLocal(STORAGE_KEYS.BLOGS, mapped);
           setBlogs(mapped);
         }
@@ -1214,33 +1218,41 @@ export function fetchAllBlogs(): BlogPost[] {
 
 export async function saveBlogLocal(blog: BlogPost): Promise<BlogPost[]> {
   const current = getLocal<BlogPost[]>(STORAGE_KEYS.BLOGS, defaultBlogPosts);
-  const idx = current.findIndex((b) => b.id === blog.id);
+  // Ensure property aliases are assigned on the blog object
+  const summaryVal = blog.summary || (blog as any).excerpt || "";
+  const imgVal = blog.featuredImage || (blog as any).coverImage || (blog as any).cover_image || "https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=800&q=80";
+  
+  const normalizedBlog: BlogPost = {
+    ...blog,
+    summary: summaryVal,
+    featuredImage: imgVal,
+  };
+
+  const idx = current.findIndex((b) => b.id === normalizedBlog.id);
   let updated: BlogPost[];
   if (idx >= 0) {
     updated = [...current];
-    updated[idx] = blog;
+    updated[idx] = normalizedBlog;
   } else {
-    updated = [blog, ...current];
+    updated = [normalizedBlog, ...current];
   }
   setLocal(STORAGE_KEYS.BLOGS, updated);
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new Event("cms-updated"));
-  }
 
   try {
     await supabase.from("blog_posts").upsert({
-      id: blog.id,
-      slug: blog.slug,
-      title: blog.title,
-      excerpt: blog.summary || "",
-      content: blog.content,
-      category: blog.category,
-      author: blog.author || "Adapa Sai Prithvi",
-      read_time: blog.readTime,
-      cover_image: blog.featuredImage || null,
-      published: blog.published !== false,
-      tags: blog.tags || [],
-      date: blog.date,
+      id: normalizedBlog.id,
+      slug: normalizedBlog.slug,
+      title: normalizedBlog.title,
+      excerpt: summaryVal,
+      summary: summaryVal,
+      content: normalizedBlog.content,
+      category: normalizedBlog.category,
+      author: normalizedBlog.author || "Adapa Sai Prithvi",
+      read_time: normalizedBlog.readTime,
+      cover_image: imgVal,
+      published: normalizedBlog.published !== false,
+      tags: normalizedBlog.tags || [],
+      date: normalizedBlog.date,
     } as never);
   } catch (err) {
     console.warn("Supabase blog save note:", err);

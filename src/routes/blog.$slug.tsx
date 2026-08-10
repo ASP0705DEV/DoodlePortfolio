@@ -6,6 +6,8 @@ import { Section, Reveal } from "@/components/ui-kit";
 import { useBlogsCMS } from "@/lib/cms-store";
 import { usePageTracking } from "@/lib/analytics";
 
+import { DoodleImage } from "@/components/ui/doodle-image";
+
 export const Route = createFileRoute("/blog/$slug")({
   component: BlogPostDetail,
 });
@@ -74,7 +76,7 @@ function BlogPostDetail() {
             <p className="mt-4 text-lg text-muted-foreground leading-relaxed">{post.summary}</p>
 
             <div className="my-8 h-72 sm:h-96 overflow-hidden rounded-2xl border-2 border-ink doodle-shadow">
-              <img src={featuredImg} alt={post.title} className="h-full w-full object-cover" />
+              <DoodleImage src={featuredImg} alt={post.title} className="h-full w-full object-cover" />
             </div>
 
             {/* Article Content Render */}
