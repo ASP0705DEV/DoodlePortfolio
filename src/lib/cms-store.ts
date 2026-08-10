@@ -923,7 +923,7 @@ export function useProjectsCMS(): ShowcaseProject[] {
     const syncProjects = async () => {
       try {
         const { data, error } = await supabase.from("projects").select("*").order("created_at", { ascending: false });
-        if (!error && Array.isArray(data)) {
+        if (!error && Array.isArray(data) && data.length > 0) {
           const mapped: ShowcaseProject[] = data.map((p) => ({
             id: p.id,
             slug: p.slug,
@@ -945,8 +945,15 @@ export function useProjectsCMS(): ShowcaseProject[] {
             deployment_platform: p.deployment_platform || "Vercel",
             features: p.features ?? [],
           }));
-          setLocal(STORAGE_KEYS.PROJECTS, mapped);
-          setProjects(mapped);
+
+          const currentLocal = getLocal<ShowcaseProject[]>(STORAGE_KEYS.PROJECTS, defaultProjects);
+          const map = new Map<string, ShowcaseProject>();
+          currentLocal.forEach((p) => map.set(p.id, p));
+          mapped.forEach((p) => map.set(p.id, p));
+
+          const merged = Array.from(map.values());
+          setLocal(STORAGE_KEYS.PROJECTS, merged);
+          setProjects(merged);
         }
       } catch {
         /* fallback to local */
@@ -1169,7 +1176,7 @@ export function useBlogsCMS(): BlogPost[] {
     const syncBlogs = async () => {
       try {
         const { data, error } = await supabase.from("blog_posts").select("*").order("created_at", { ascending: false });
-        if (!error && Array.isArray(data)) {
+        if (!error && Array.isArray(data) && data.length > 0) {
           const mapped: BlogPost[] = data.map((b) => {
             const summaryVal = b.summary || b.excerpt || "";
             const imgVal = b.cover_image || b.coverImage || b.featuredImage || "https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=800&q=80";
@@ -1188,8 +1195,16 @@ export function useBlogsCMS(): BlogPost[] {
               tags: b.tags && Array.isArray(b.tags) && b.tags.length > 0 ? b.tags : ["Engineering", "AI"],
             };
           });
-          setLocal(STORAGE_KEYS.BLOGS, mapped);
-          setBlogs(mapped);
+
+          // Bi-directional merge with local storage
+          const currentLocal = getLocal<BlogPost[]>(STORAGE_KEYS.BLOGS, defaultBlogPosts);
+          const map = new Map<string, BlogPost>();
+          currentLocal.forEach((b) => map.set(b.id, b));
+          mapped.forEach((b) => map.set(b.id, b));
+
+          const merged = Array.from(map.values());
+          setLocal(STORAGE_KEYS.BLOGS, merged);
+          setBlogs(merged);
         }
       } catch {
         /* fallback */
