@@ -1,12 +1,11 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Search, Calendar, Clock, Tag, ArrowRight, Sparkles } from "lucide-react";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 import { Section, SectionHeading, Reveal } from "@/components/ui-kit";
-import { fetchAllBlogs } from "@/lib/cms-store";
+import { useBlogsCMS } from "@/lib/cms-store";
 import { usePageTracking } from "@/lib/analytics";
-
 import { DoodleImage } from "@/components/ui/doodle-image";
 
 export const Route = createFileRoute("/blog")({
@@ -19,24 +18,30 @@ export const Route = createFileRoute("/blog")({
   component: BlogPage,
 });
 
-import { useBlogsCMS } from "@/lib/cms-store";
-
 function BlogPage() {
   usePageTracking("/blog");
   const blogs = useBlogsCMS();
   const [query, setQuery] = useState("");
   const [selectedCat, setSelectedCat] = useState("all");
 
-  const categories = ["all", "AI & Agents", "Computer Vision", "Full Stack", "Architecture"];
+  const categories = useMemo(() => {
+    const defaultCats = ["all", "AI & Agents", "Computer Vision", "Full Stack", "Architecture"];
+    const dynamicCats = blogs.map((b) => b.category).filter(Boolean);
+    return Array.from(new Set([...defaultCats, ...dynamicCats]));
+  }, [blogs]);
 
   const filtered = blogs.filter((b) => {
+    if (b.published === false) return false;
     const matchesCat = selectedCat === "all" || b.category === selectedCat;
     const q = query.toLowerCase();
+    const summaryText = (b.summary || (b as any).excerpt || "").toLowerCase();
+    const titleText = (b.title || "").toLowerCase();
+    const tagsArr = b.tags && Array.isArray(b.tags) ? b.tags : [];
     const matchesQuery =
       !q ||
-      b.title.toLowerCase().includes(q) ||
-      b.summary.toLowerCase().includes(q) ||
-      b.tags.some((t) => t.toLowerCase().includes(q));
+      titleText.includes(q) ||
+      summaryText.includes(q) ||
+      tagsArr.some((t) => (t || "").toLowerCase().includes(q));
     return matchesCat && matchesQuery;
   });
 

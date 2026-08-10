@@ -16,8 +16,14 @@ function BlogPostDetail() {
   const { slug } = Route.useParams();
   usePageTracking(`/blog/${slug}`);
 
-  const blogs = useBlogsCMS();
-  const post = blogs.find((b) => b.slug === slug || b.id === slug);
+  const decodedSlug = decodeURIComponent(slug).toLowerCase();
+  const post = blogs.find(
+    (b) =>
+      b.slug === slug ||
+      b.id === slug ||
+      (b.slug && b.slug.toLowerCase() === decodedSlug) ||
+      (b.id && b.id.toLowerCase() === decodedSlug)
+  );
 
   if (!post) {
     return (

@@ -1239,12 +1239,11 @@ export async function saveBlogLocal(blog: BlogPost): Promise<BlogPost[]> {
   setLocal(STORAGE_KEYS.BLOGS, updated);
 
   try {
-    await supabase.from("blog_posts").upsert({
+    const { error: upsertErr } = await supabase.from("blog_posts").upsert({
       id: normalizedBlog.id,
       slug: normalizedBlog.slug,
       title: normalizedBlog.title,
       excerpt: summaryVal,
-      summary: summaryVal,
       content: normalizedBlog.content,
       category: normalizedBlog.category,
       author: normalizedBlog.author || "Adapa Sai Prithvi",
@@ -1254,8 +1253,11 @@ export async function saveBlogLocal(blog: BlogPost): Promise<BlogPost[]> {
       tags: normalizedBlog.tags || [],
       date: normalizedBlog.date,
     } as never);
+    if (upsertErr) {
+      console.error("Supabase blog save error:", upsertErr);
+    }
   } catch (err) {
-    console.warn("Supabase blog save note:", err);
+    console.warn("Supabase blog save exception:", err);
   }
 
   try {
