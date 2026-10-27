@@ -159,9 +159,11 @@ export function Hero() {
             {/* Doodle portrait image */}
             <div className="relative overflow-hidden rounded-2xl border-2 border-ink bg-paper">
               <DoodleImage
-                src={hero.hero_image}
+                src={hero.hero_image || "/sai-prithvi-doodle.png"}
+                fallbackSrc="/sai-prithvi-doodle.png"
                 alt="Sai Prithvi — Doodle Portrait"
                 className="mx-auto h-52 w-full object-cover object-top sm:h-64"
+                loading="eager"
               />
             </div>
 

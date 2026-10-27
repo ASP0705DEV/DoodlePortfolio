@@ -3,8 +3,7 @@
  * ASP0705DEV Doodle Portfolio CMS
  */
 
-export const DEFAULT_DOODLE_FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80";
+export const DEFAULT_DOODLE_FALLBACK_IMAGE = "/sai-prithvi-doodle.png";
 
 /**
  * Extracts a Google Drive File ID from various sharing link formats.

@@ -17,38 +17,42 @@ export const DoodleImage: React.FC<DoodleImageProps> = ({
   containerClassName = "",
   showFallbackBadge = false,
   onError,
+  onLoad,
   ...props
 }) => {
   const resolved = resolveImageUrl(src, fallbackSrc);
-  const [currentSrc, setCurrentSrc] = useState<string>(resolved);
-  const [hasError, setHasError] = useState<boolean>(false);
+  const [errorUrl, setErrorUrl] = useState<string | null>(null);
+  const [isLoaded, setIsLoaded] = useState<boolean>(false);
 
-  useEffect(() => {
-    const nextResolved = resolveImageUrl(src, fallbackSrc);
-    setCurrentSrc(nextResolved);
-    setHasError(false);
-  }, [src, fallbackSrc]);
+  // Directly derive currentSrc without an effect delay
+  const isFailed = errorUrl === resolved;
+  const currentSrc = isFailed ? fallbackSrc : resolved;
 
   const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    if (!hasError) {
-      setHasError(true);
-      setCurrentSrc(fallbackSrc);
+    if (!isFailed) {
+      setErrorUrl(resolved);
     }
-    if (onError) {
-      onError(e);
-    }
+    onError?.(e);
+  };
+
+  const handleLoad = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    setIsLoaded(true);
+    onLoad?.(e);
   };
 
   return (
     <div className={`relative overflow-hidden ${containerClassName}`}>
       <img
+        key={currentSrc}
         src={currentSrc}
         alt={alt}
         onError={handleError}
-        className={className}
+        onLoad={handleLoad}
+        className={`${className} transition-opacity duration-200 ${isLoaded ? "opacity-100" : "opacity-95"}`}
+        suppressHydrationWarning
         {...props}
       />
-      {hasError && showFallbackBadge && (
+      {isFailed && showFallbackBadge && (
         <div className="absolute bottom-2 right-2 rounded-md bg-card/90 border border-ink px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground flex items-center gap-1 shadow-xs">
           <ImageOff className="h-3 w-3 text-coral" />
           <span>Fallback Image</span>

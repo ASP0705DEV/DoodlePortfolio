@@ -26,7 +26,7 @@ export const defaultAdminProfile: AdminProfile = {
   username: "ASP0705",
   display_name: "Sai Prithvi",
   email: "saiprithvi0705@gmail.com",
-  avatar_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+  avatar_url: "/sai-prithvi-doodle.png",
   role: "admin",
   last_login_at: new Date().toISOString(),
   created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),

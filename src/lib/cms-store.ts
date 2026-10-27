@@ -103,7 +103,7 @@ export const defaultCMSContent: MasterCMSContent = {
       "SELECT * FROM ideas;",
       "docker compose up -d",
     ],
-    hero_image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+    hero_image: "/sai-prithvi-doodle.png",
   },
   about: {
     bio: "I'm a Computer Science graduate, Full Stack Developer, and founder of ASP0705DEV. I specialize in building robust web applications while actively diving deeper into Agentic AI workflows, Generative AI models, and autonomous software systems. I also work as a Software Developer at Gagellan Global Solutions.",
@@ -848,6 +848,16 @@ function mergeCMSWithDefaults(partial: unknown): MasterCMSContent {
       (merged as Record<string, unknown>)[key] = val;
     }
   }
+
+  // Prevent old legacy Unsplash placeholder image from persisting in hero
+  if (
+    merged.hero &&
+    (!merged.hero.hero_image ||
+      merged.hero.hero_image.includes("photo-1534528741775-53994a69daeb"))
+  ) {
+    merged.hero.hero_image = "/sai-prithvi-doodle.png";
+  }
+
   return merged;
 }
 
@@ -872,7 +882,16 @@ export async function saveCMSContent(content: MasterCMSContent): Promise<MasterC
 }
 
 export function useCMSContent(): MasterCMSContent {
-  const [content, setContent] = useState<MasterCMSContent>(defaultCMSContent);
+  const [content, setContent] = useState<MasterCMSContent>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return getCMSContent();
+      } catch {
+        return defaultCMSContent;
+      }
+    }
+    return defaultCMSContent;
+  });
 
   useEffect(() => {
     // Sync local storage state after SSR hydration completes

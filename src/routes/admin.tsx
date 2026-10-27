@@ -1503,7 +1503,7 @@ function AdminPage() {
                       alt={adminProfile.display_name}
                       className="h-full w-full object-cover"
                       onError={(e) => {
-                        e.currentTarget.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80";
+                        e.currentTarget.src = "/sai-prithvi-doodle.png";
                       }}
                     />
                   </div>
